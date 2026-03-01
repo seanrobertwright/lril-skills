@@ -5,6 +5,7 @@ const path = require('path');
 const {
   printHeader,
   multiSelect,
+  singleSelect,
   createSpinner,
   printSummary,
   printNoSkills,
@@ -17,7 +18,7 @@ const {
   BOLD,
 } = require('../lib/ui');
 const { discoverSkills } = require('../lib/discovery');
-const { installSkill, uninstallSkill, getInstalledSkills, cleanupLegacy } = require('../lib/installer');
+const { installSkill, uninstallSkill, getInstalledSkills, cleanupLegacy, skillsDir } = require('../lib/installer');
 
 const PKG = require(path.join(__dirname, '..', 'package.json'));
 const SKILLS_DIR = path.join(__dirname, '..', 'skills');
@@ -26,6 +27,24 @@ const SKILLS_DIR = path.join(__dirname, '..', 'skills');
 
 function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+// ── Scope Selection ─────────────────────────────────────────────────
+
+async function selectScope() {
+  const items = [
+    {
+      name: 'Global',
+      description: 'Available in all projects (~/.claude/skills/)',
+    },
+    {
+      name: 'Project',
+      description: 'Available only in this project (.claude/skills/)',
+    },
+  ];
+
+  const idx = await singleSelect('Where should skills be installed?', items);
+  return idx === 0 ? 'global' : 'project';
 }
 
 // ── Install Flow ────────────────────────────────────────────────────
@@ -37,7 +56,14 @@ async function runInstall() {
     process.exit(1);
   }
 
-  const installed = getInstalledSkills();
+  // Ask where to install
+  const scope = await selectScope();
+
+  console.log('');
+  printDivider();
+  console.log('');
+
+  const installed = getInstalledSkills(scope, skills.map((s) => s.name));
   const installedNames = new Set(installed.map((s) => s.name));
 
   // Build items for multi-select
@@ -53,7 +79,8 @@ async function runInstall() {
     };
   });
 
-  printInfo(`Found ${BOLD}${skills.length}${RESET} skill${skills.length !== 1 ? 's' : ''} available\n`);
+  const scopeLabel = scope === 'global' ? 'globally' : 'for this project';
+  printInfo(`Found ${BOLD}${skills.length}${RESET} skill${skills.length !== 1 ? 's' : ''} available — installing ${scopeLabel}\n`);
 
   const selectedIndices = await multiSelect('Select skills to install:', items);
 
@@ -73,7 +100,7 @@ async function runInstall() {
     spinner.start();
     await sleep(300); // Brief pause for visual feedback
 
-    const result = installSkill(skill, PKG.version);
+    const result = installSkill(skill, scope);
     results.push(result);
 
     if (result.ok) {
@@ -84,15 +111,29 @@ async function runInstall() {
   }
 
   printSummary('install', results);
+
+  const dir = skillsDir(scope);
+  printInfo(`Skills installed to: ${COLORS.dimGray}${dir}${RESET}\n`);
 }
 
 // ── Uninstall Flow ──────────────────────────────────────────────────
 
 async function runUninstall() {
-  const installed = getInstalledSkills();
+  const skills = discoverSkills(SKILLS_DIR);
+  const knownNames = skills.map((s) => s.name);
+
+  // Ask which scope to uninstall from
+  const scope = await selectScope();
+
+  console.log('');
+  printDivider();
+  console.log('');
+
+  const installed = getInstalledSkills(scope, knownNames);
 
   if (installed.length === 0) {
-    printWarning('No LRIL skills are currently installed.');
+    const scopeLabel = scope === 'global' ? 'globally' : 'in this project';
+    printWarning(`No LRIL skills are currently installed ${scopeLabel}.`);
     console.log('');
     process.exit(0);
   }
@@ -101,9 +142,8 @@ async function runUninstall() {
 
   const items = installed.map((s) => ({
     name: s.name,
-    description: `v${s.version}`,
+    description: s.scope === 'global' ? 'global' : 'project',
     checked: true,
-    _version: s.version,
   }));
 
   const selectedIndices = await multiSelect('Select skills to uninstall:', items);
@@ -124,7 +164,7 @@ async function runUninstall() {
     spinner.start();
     await sleep(300);
 
-    const result = uninstallSkill(item.name, item._version);
+    const result = uninstallSkill(item.name, scope);
     results.push(result);
 
     if (result.ok) {
@@ -155,16 +195,23 @@ function printHelp() {
 
 function runList() {
   const skills = discoverSkills(SKILLS_DIR);
-  const installed = getInstalledSkills();
-  const installedNames = new Set(installed.map((s) => s.name));
+  const knownNames = skills.map((s) => s.name);
+  const globalInstalled = getInstalledSkills('global', knownNames);
+  const projectInstalled = getInstalledSkills('project', knownNames);
+  const globalNames = new Set(globalInstalled.map((s) => s.name));
+  const projectNames = new Set(projectInstalled.map((s) => s.name));
 
   console.log('');
   console.log(`  ${BOLD}Available skills:${RESET}`);
   console.log('');
 
   for (const skill of skills) {
-    const status = installedNames.has(skill.name)
-      ? `${COLORS.green}● installed${RESET}`
+    const tags = [];
+    if (globalNames.has(skill.name)) tags.push('global');
+    if (projectNames.has(skill.name)) tags.push('project');
+
+    const status = tags.length > 0
+      ? `${COLORS.green}● ${tags.join(', ')}${RESET}`
       : `${COLORS.gray}○ not installed${RESET}`;
     console.log(`  ${status}  ${BOLD}${skill.name}${RESET}`);
     console.log(`           ${COLORS.dimGray}${skill.description}${RESET}`);
@@ -190,7 +237,7 @@ async function main() {
 
   printHeader(PKG.version);
 
-  // Clean up stale registrations from old standalone format
+  // Clean up stale registrations from old plugin-based format
   cleanupLegacy();
 
   if (args.includes('--list') || args.includes('-l')) {
