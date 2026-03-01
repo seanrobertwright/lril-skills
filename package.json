@@ -1,0 +1,24 @@
+{
+  "name": "lril-skills",
+  "version": "1.0.0",
+  "description": "Interactive installer for LRIL Claude Code skills",
+  "bin": {
+    "lril-skills": "bin/cli.js"
+  },
+  "files": [
+    "bin/",
+    "lib/",
+    "skills/"
+  ],
+  "keywords": [
+    "claude",
+    "claude-code",
+    "skills",
+    "installer",
+    "lril"
+  ],
+  "license": "MIT",
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

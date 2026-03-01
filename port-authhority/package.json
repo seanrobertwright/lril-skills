@@ -1,0 +1,24 @@
+{
+  "name": "port-authhority",
+  "version": "1.0.0",
+  "description": "Claude Code skill for detecting and resolving Docker port conflicts",
+  "bin": {
+    "port-authhority": "bin/install.js"
+  },
+  "files": [
+    "bin/",
+    "skill/"
+  ],
+  "keywords": [
+    "claude",
+    "claude-code",
+    "docker",
+    "port-conflict",
+    "skill"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/seanr/port-authhority"
+  }
+}
