@@ -17,7 +17,7 @@ const {
   BOLD,
 } = require('../lib/ui');
 const { discoverSkills } = require('../lib/discovery');
-const { installSkill, uninstallSkill, getInstalledSkills } = require('../lib/installer');
+const { installSkill, uninstallSkill, getInstalledSkills, cleanupLegacy } = require('../lib/installer');
 
 const PKG = require(path.join(__dirname, '..', 'package.json'));
 const SKILLS_DIR = path.join(__dirname, '..', 'skills');
@@ -189,6 +189,9 @@ async function main() {
   }
 
   printHeader(PKG.version);
+
+  // Clean up stale registrations from old standalone format
+  cleanupLegacy();
 
   if (args.includes('--list') || args.includes('-l')) {
     runList();
