@@ -66,6 +66,34 @@ Return decision=revise when:
 - low: read/plan only
 - medium: writing files in repo or changing port mappings for running stacks
 
+## Goal Hierarchy Overrides
+
+When the ports domain plugin is active, the default goal hierarchy is overridden:
+
+1. **No collisions** -- zero port conflicts in the running stack
+2. **Deterministic allocation** -- same inputs always produce same port assignments
+3. **Backward compatibility** -- preserve existing port mappings when possible
+4. **Correctness** -- validation passes; reservations match compose
+5. **Developer experience** -- clear mappings, easy onboarding
+
+### Domain-Specific Conflict Resolution
+- **Collision vs. Preservation**: Resolve collision first; log which mapping changed.
+- **Category range conflict**: Ask before reassigning ports across categories.
+- **Config drift detected**: Reconcile reservations file with docker-compose state.
+- **Minimal diff vs. Clean allocation**: Prefer minimal diff unless collisions persist.
+
+## Verification Commands
+
+Domain-specific verification commands for ports intents:
+
+- `python scripts/validate_no_collisions.py` -- Check for duplicate host port bindings
+- `python scripts/check_reservations.py` -- Verify reservations file matches compose
+- `docker compose config --quiet` -- Validate compose file syntax
+- `python scripts/check_category_ranges.py` -- Verify ports are within declared ranges
+
+These are suggested defaults. Individual IntentSpecs should override with
+task-specific commands in their `### Verification` section.
+
 ## Personal intent mapping
 - ship:
   - minimize diffs; preserve existing mappings when possible

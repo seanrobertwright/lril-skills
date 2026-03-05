@@ -69,6 +69,34 @@ Soft:
 - high by default for LOTO/SOP generation
 - critical if user requests bypassing safety steps or wants “sign-off ready” without review
 
+## Goal Hierarchy Overrides
+
+When the EH&S domain plugin is active, the default goal hierarchy is overridden:
+
+1. **Regulatory accuracy** -- OSHA/EPA citations are correct and current
+2. **Data integrity** -- all changes have audit trails; never silently drop safety data
+3. **Safety** -- no hazard data is fabricated, misclassified, or silently dropped
+4. **Correctness** -- tests pass; LOTO step order is valid
+5. **Performance** -- only after correctness and compliance are verified
+
+### Domain-Specific Conflict Resolution
+- **Speed vs. Compliance**: Compliance wins. Always. Log the trade-off.
+- **Completeness vs. Regulatory scope**: Complete the regulatory requirement; propose expansion separately.
+- **Ambiguous regulatory logic**: Ask before assuming. Regulations are precise.
+- **Template convenience vs. Accuracy**: Accuracy wins. Never auto-fill safety-critical fields.
+
+## Verification Commands
+
+Domain-specific verification commands for EH&S intents:
+
+- `pytest tests/compliance/ -v --tb=short` -- Run compliance test suite
+- `pytest tests/exports/ -v` -- Validate export formats (OSHA 300, incident logs)
+- `python -m mypy --strict src/ehs/` -- Type-check safety-critical modules
+- `python scripts/validate_citations.py` -- Verify OSHA/EPA citation references
+
+These are suggested defaults. Individual IntentSpecs should override with
+task-specific commands in their `### Verification` section.
+
 ## Personal intent mapping
 - ship:
   - draft quickly, but do not bypass unknowns/safety gates

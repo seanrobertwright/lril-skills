@@ -14,11 +14,17 @@
         "id",
         "domain",
         "objective",
-        "risk_tier"
+        "risk_tier",
+        "version",
+        "goal_hierarchy"
       ],
       "properties": {
         "id": {
           "type": "string"
+        },
+        "version": {
+          "type": "string",
+          "description": "Semantic version of this intent spec (e.g., '1.0.0')"
         },
         "domain": {
           "type": "string"
@@ -32,13 +38,27 @@
         "constraints": {
           "type": "array",
           "items": {
-            "type": "object"
+            "type": "object",
+            "properties": {
+              "name": { "type": "string" },
+              "value": { "type": "string" },
+              "hard": { "type": "boolean" },
+              "rationale": { "type": "string" }
+            },
+            "required": ["name", "hard"]
           }
         },
         "success": {
           "type": "array",
           "items": {
-            "type": "object"
+            "type": "object",
+            "properties": {
+              "name": { "type": "string" },
+              "metric": { "type": "string" },
+              "threshold": { "type": "string" },
+              "description": { "type": "string" }
+            },
+            "required": ["name"]
           }
         },
         "risk_tier": {
@@ -49,6 +69,101 @@
             "high",
             "critical"
           ]
+        },
+        "goal_hierarchy": {
+          "type": "array",
+          "description": "Ordered list of goals from highest to lowest priority. Higher-priority goals always win in conflicts.",
+          "items": {
+            "type": "object",
+            "required": ["rank", "goal"],
+            "properties": {
+              "rank": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "goal": {
+                "type": "string"
+              },
+              "description": {
+                "type": "string"
+              }
+            }
+          },
+          "minItems": 1
+        },
+        "escalation_triggers": {
+          "type": "array",
+          "description": "Conditions under which the agent must stop and ask a human before proceeding.",
+          "items": {
+            "type": "object",
+            "required": ["condition"],
+            "properties": {
+              "condition": {
+                "type": "string"
+              },
+              "action": {
+                "type": "string",
+                "enum": ["pause", "escalate", "refuse"],
+                "default": "pause"
+              },
+              "rationale": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "verification_commands": {
+          "type": "array",
+          "description": "Runnable commands that verify whether the intent outcomes have been achieved.",
+          "items": {
+            "type": "object",
+            "required": ["command", "description"],
+            "properties": {
+              "command": {
+                "type": "string",
+                "description": "Shell command to run"
+              },
+              "description": {
+                "type": "string"
+              },
+              "weight": {
+                "type": "number",
+                "minimum": 0,
+                "default": 1.0,
+                "description": "Relative importance for weighted scoring"
+              },
+              "required": {
+                "type": "boolean",
+                "default": true,
+                "description": "If true, failure of this check means the overall verification fails"
+              }
+            }
+          }
+        },
+        "conflict_resolution": {
+          "type": "array",
+          "description": "Rules for resolving conflicts between goals.",
+          "items": {
+            "type": "object",
+            "required": ["condition", "resolution"],
+            "properties": {
+              "condition": {
+                "type": "string",
+                "description": "The conflict scenario (e.g., 'speed vs safety')"
+              },
+              "resolution": {
+                "type": "string",
+                "description": "Which goal wins and what to do"
+              }
+            }
+          }
+        },
+        "changelog": {
+          "type": "array",
+          "description": "Version history for this intent spec.",
+          "items": {
+            "type": "string"
+          }
         },
         "ambiguity_policy": {
           "type": "string",
@@ -261,6 +376,24 @@
           "items": {
             "type": "string"
           }
+        },
+        "verification_results": {
+          "type": "array",
+          "description": "Results from running verification commands.",
+          "items": {
+            "type": "object",
+            "required": ["command", "passed"],
+            "properties": {
+              "command": { "type": "string" },
+              "passed": { "type": "boolean" },
+              "output": { "type": "string" },
+              "weight": { "type": "number" }
+            }
+          }
+        },
+        "goal_hierarchy_respected": {
+          "type": "boolean",
+          "description": "Whether all decisions respected the goal priority ordering."
         }
       }
     }
