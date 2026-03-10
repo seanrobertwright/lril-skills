@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "rlm-navigator": {
+      "type": "stdio",
+      "command": "node",
+      "args": [
+        "E:\\codebase\\lril-skills\\.rlm\\server\\build\\index.js"
+      ],
+      "env": {}
+    }
+  }
+}

@@ -1,208 +1,182 @@
 ---
 name: e2e-test
-description: Comprehensive end-to-end testing command. Launches parallel sub-agents to research the codebase (structure, database schema, potential bugs), then uses the Vercel Agent Browser CLI to test every user journey — taking screenshots, validating UI/UX, and querying the database to verify records. Run after implementation to validate everything before code review.
-disable-model-invocation: true
+description: Run end-to-end browser tests on a web application. Use when the user says "test the app", "e2e test", "run end-to-end tests", "test all user flows", "verify the UI works", "check for bugs", "test everything before review", or wants to validate a web app works correctly after implementation.
 ---
 
 # End-to-End Application Testing
 
-## Pre-flight Check
+Test every user journey in a web application using browser automation, screenshot verification, and database validation.
 
-### 1. Platform Check
+## Pre-flight Checks
 
-agent-browser requires **Linux, WSL, or macOS**. Check the platform:
+### 1. Platform
+
+agent-browser requires Linux, WSL, or macOS.
 ```bash
 uname -s
 ```
-- `Linux` or `Darwin` → proceed
-- Anything else (e.g., `MINGW`, `CYGWIN`, or native Windows) → stop with:
+If the output is `MINGW`, `CYGWIN`, or similar (native Windows), stop:
+> "agent-browser requires Linux, WSL, or macOS. Please run from WSL or a compatible environment."
 
-> "agent-browser only supports Linux, WSL, and macOS. It cannot run on native Windows. Please run this command from WSL or a Linux/macOS environment."
+### 2. Frontend Detection
 
-Stop execution if the platform is unsupported.
+Verify the app has a browser-accessible UI by checking for a dev/start script in `package.json`, framework files (`pages/`, `app/`, `src/components/`, `index.html`), or web server config.
 
-### 2. Frontend Check
+If no frontend exists, stop:
+> "No browser-accessible frontend detected. E2E browser testing requires a UI. For API-only testing, use a different approach."
 
-Verify the application has a browser-accessible frontend. Check for:
-- A `package.json` with a dev/start script serving a UI
-- Frontend framework files (pages/, app/, src/components/, index.html, etc.)
-- Web server configuration
+### 3. agent-browser Setup
 
-If no frontend is detected:
-> "This application doesn't appear to have a browser-accessible frontend. E2E browser testing requires a UI to visit. For backend-only or API testing, a different approach is needed."
-
-Stop execution if no frontend is found.
-
-### 3. agent-browser Installation
-
-Check if agent-browser is installed:
 ```bash
-agent-browser --version
-```
-
-If the command is not found, install it automatically:
-```bash
-npm install -g agent-browser
-```
-
-After installation (or if it was already installed), ensure the browser engine is set up:
-```bash
+agent-browser --version || npm install -g agent-browser
 agent-browser install --with-deps
 ```
 
-The `--with-deps` flag installs system-level Chromium dependencies on Linux/WSL. On macOS it is harmless.
-
-Verify installation succeeded:
-```bash
-agent-browser --version
-```
-
-If installation fails, stop with:
-> "Failed to install agent-browser. Please install it manually with `npm install -g agent-browser && agent-browser install --with-deps`, then re-run this command."
+The `--with-deps` flag installs Chromium dependencies on Linux/WSL. Harmless on macOS. If installation fails, stop with manual install instructions.
 
 ## Phase 1: Parallel Research
 
-Launch **three sub-agents simultaneously** using the Task tool. All three run in parallel.
+Launch three sub-agents simultaneously to research the codebase. If the Task tool (TaskCreate/TaskUpdate) is available, use it to manage these as tracked tasks. Otherwise, use standard sub-agent invocations. The research phase works either way.
 
 ### Sub-agent 1: Application Structure & User Journeys
 
-> Research this codebase thoroughly. Return a structured summary covering:
->
-> 1. **How to start the application** — exact commands to install dependencies and run the dev server, including the URL and port it serves on
-> 2. **Authentication/login** — if the app has protected routes, how to create a test account or log in (credentials from .env.example, seed data, or sign-up flow)
-> 3. **Every user-facing route/page** — each URL path and what it renders
-> 4. **Every user journey** — complete flows a user can take (e.g., "sign up → create profile → view public page"). For each journey, list the specific steps, interactions (clicks, form fills, navigation), and expected outcomes
-> 5. **Key UI components** — forms, modals, dropdowns, pickers, toggles, and other interactive elements that need testing
->
-> Be exhaustive. Testing will only cover what you identify here.
+Research and return:
+1. **Startup commands** -- exact install + dev server commands, URL, and port
+2. **Authentication** -- how to log in or create test accounts (check `.env.example` for credentials, seed data, or sign-up flow). Note the auth type: simple login form, OAuth/SSO, magic link, etc.
+3. **Every route/page** -- URL paths and what they render
+4. **Every user journey** -- complete flows with steps, interactions, and expected outcomes
+5. **Interactive elements** -- forms, modals, dropdowns, pickers, toggles needing testing
 
 ### Sub-agent 2: Database Schema & Data Flows
 
-> Research this codebase's database layer. Read `.env.example` to understand environment variables for database connections. DO NOT read `.env` directly. Return a structured summary covering:
->
-> 1. **Database type and connection** — what database is used (Postgres, MySQL, SQLite, etc.) and the environment variable name for the connection string (from .env.example)
-> 2. **Full schema** — every table, its columns, types, and relationships
-> 3. **Data flows per user action** — for each user-facing action (form submit, button click, etc.), document exactly what records are created, updated, or deleted and in which tables
-> 4. **Validation queries** — for each data flow, provide the exact query to verify records are correct after the action
+Research and return (read `.env.example`, never `.env`):
+1. **Database type and connection** -- DB engine and env var name for the connection string
+2. **Full schema** -- tables, columns, types, relationships
+3. **Data flows per action** -- what records each user action creates/updates/deletes
+4. **Validation queries** -- exact queries to verify correctness after each action
 
 ### Sub-agent 3: Bug Hunting
 
-> Analyze this codebase for potential bugs, issues, and code quality problems. Focus on:
->
-> 1. **Logic errors** — incorrect conditionals, off-by-one errors, missing null checks, race conditions
-> 2. **UI/UX issues** — missing error handling in forms, no loading states, broken responsive layouts, accessibility problems
-> 3. **Data integrity risks** — missing validation, potential orphaned records, incorrect cascade behavior
-> 4. **Security concerns** — SQL injection, XSS, missing auth checks, exposed secrets
->
-> Return a prioritized list with file paths and line numbers.
+Analyze for potential issues:
+1. **Logic errors** -- bad conditionals, null checks, race conditions
+2. **UI/UX issues** -- missing error handling, loading states, accessibility
+3. **Data integrity** -- missing validation, orphaned records, cascade issues
+4. **Security** -- injection, XSS, missing auth checks
 
-**Wait for all three sub-agents to complete before proceeding.**
+Return a prioritized list with file paths and line numbers.
+
+**Wait for all three to complete before proceeding.**
 
 ## Phase 2: Start the Application
 
 Using Sub-agent 1's startup instructions:
 
 1. Install dependencies if needed
-2. Start the dev server **in the background** (e.g., `npm run dev &`)
+2. Start the dev server in the background (e.g., `npm run dev &`)
 3. Wait for the server to be ready
-4. Open the app with `agent-browser open <url>` and confirm it loads
-5. Take an initial screenshot: `agent-browser screenshot e2e-screenshots/00-initial-load.png`
+4. Open: `agent-browser open <url>` and confirm it loads
+5. Screenshot: `agent-browser screenshot e2e-screenshots/00-initial-load.png`
 
-## Phase 3: Create Task List
+### Handling Auth
 
-Using the user journeys from Sub-agent 1 and findings from Sub-agent 3, create a task (using TaskCreate) for each user journey. Each task should include:
+Choose the right strategy based on Sub-agent 1's auth findings:
 
-- **subject:** The journey name (e.g., "Test profile creation flow")
-- **description:** Steps to execute, expected outcomes, database records to verify, and any related bug findings from Sub-agent 3
-- **activeForm:** Present continuous (e.g., "Testing profile creation flow")
+- **Simple login form**: Fill credentials and submit before testing protected routes
+- **OAuth/SSO**: Check if the app has a dev/test bypass mode, test-user seeding, or API-based auth. If OAuth is the only option and there is no bypass, test only public routes and note the limitation
+- **Magic link / email-based**: Look for a dev mailbox or test mode that auto-confirms. If unavailable, test public routes only
+- **No auth**: Proceed directly
 
-Also create a final task: "Responsive testing across viewports."
+## Phase 3: Organize Test Plan
 
-## Phase 4: User Journey Testing
+If TaskCreate is available, create a task per user journey with the journey name, steps, and expected outcomes. Also create a responsive testing task.
 
-For each task, mark it `in_progress` with TaskUpdate and execute the following.
+If TaskCreate is not available, list all journeys to test and work through them sequentially. The testing process is the same either way.
 
-### 4a. Browser Testing
+## Phase 4: Execute Tests
 
-Use the Vercel Agent Browser CLI for all browser interaction:
+For each journey, mark it in-progress (if using tasks) and execute the following.
 
+### 4a. Browser Interaction
+
+Core agent-browser commands:
 ```
-agent-browser open <url>              # Navigate to a page
-agent-browser snapshot -i             # Get interactive elements with refs (@e1, @e2...)
-agent-browser click @eN               # Click element by ref
-agent-browser fill @eN "text"         # Clear field and type
-agent-browser select @eN "option"     # Select dropdown option
-agent-browser press Enter             # Press a key
+agent-browser open <url>              # Navigate
+agent-browser snapshot -i             # Get interactive refs (@e1, @e2...)
+agent-browser click @eN               # Click
+agent-browser fill @eN "text"         # Clear + type
+agent-browser select @eN "option"     # Dropdown select
+agent-browser press Enter             # Keypress
 agent-browser screenshot <path>       # Save screenshot
-agent-browser screenshot --annotate   # Screenshot with numbered element labels
-agent-browser set viewport W H        # Set viewport (e.g., 375 812 for mobile)
-agent-browser wait --load networkidle # Wait for page to settle
-agent-browser console                 # Check for JS errors
-agent-browser errors                  # Check for uncaught exceptions
-agent-browser get text @eN            # Get element text
-agent-browser get url                 # Get current URL
+agent-browser screenshot --annotate   # Screenshot with labeled elements
+agent-browser set viewport W H        # Resize viewport
+agent-browser wait --load networkidle # Wait for network idle
+agent-browser console                 # JS console output
+agent-browser errors                  # Uncaught exceptions
+agent-browser get text @eN            # Element text
+agent-browser get url                 # Current URL
 agent-browser close                   # End session
 ```
 
-**Refs become invalid after navigation or DOM changes.** Always re-snapshot after page navigation, form submissions, or dynamic content updates (modals, tabs, theme changes).
+**Refs become stale after navigation or DOM changes.** Always re-snapshot after page loads, form submissions, or dynamic updates (modals, tabs, theme switches).
 
-For each step in a user journey:
-
+For each step:
 1. Snapshot to get current refs
 2. Perform the interaction
 3. Wait for the page to settle
-4. **Take a screenshot** — save to a descriptive path under `e2e-screenshots/` organized by journey (e.g., `e2e-screenshots/profile-creation/03-form-submitted.png`)
-5. **Analyze the screenshot** — use the Read tool to view the screenshot image. Check for visual correctness, UX issues, broken layouts, missing content, error states
-6. Check `agent-browser console` and `agent-browser errors` periodically for JavaScript issues
+4. Screenshot to `e2e-screenshots/<journey-name>/NN-description.png`
+5. Read the screenshot to check for visual correctness, broken layouts, error states
+6. Periodically check `agent-browser console` and `agent-browser errors`
 
-Be thorough. Go through EVERY interaction, EVERY form field, EVERY button. The goal is that by the time this finishes, every part of the UI has been exercised and screenshotted.
+### Handling SPA Behavior
+
+Single-page applications use client-side routing, so `agent-browser open` may not navigate the same way as clicking links. Prefer clicking in-app navigation links over opening URLs directly. After client-side navigations, use `agent-browser wait --load networkidle` before snapshotting since the URL may update before content renders.
+
+### Handling Failures
+
+If an agent-browser command fails:
+- **Timeout / element not found**: Re-snapshot, verify the ref still exists, retry once. The DOM may have changed.
+- **Navigation error**: Check if the dev server is still running. Restart if needed.
+- **Screenshot fails**: Verify the output directory exists (`mkdir -p e2e-screenshots/<journey>`).
+- **Persistent failure**: Document the failure, skip the step, and continue with remaining tests. Do not let one broken step block the entire suite.
 
 ### 4b. Database Validation
 
-After any interaction that should modify data (form submits, deletions, updates):
+After data-modifying interactions (form submits, deletions, updates):
 
-1. Query the database to verify records. Use the environment variable from Sub-agent 2's research for the connection string and the schema docs to know what to check.
-   - **Postgres:** use `psql` directly — e.g., `psql "$DATABASE_URL" -c "SELECT theme FROM profiles WHERE username = 'testuser'"`
-   - **SQLite:** use `sqlite3` directly — e.g., `sqlite3 db.sqlite "SELECT theme FROM profiles WHERE username = 'testuser'"`
-   - **Other databases:** write a small ad hoc script in the application's language, run it, then delete it
-2. Verify:
-   - Records created/updated/deleted as expected
-   - Values match what was entered in the UI
-   - Relationships between records are correct
-   - No orphaned or duplicate records
+1. Query the database using the env var from Sub-agent 2's research:
+   - **Postgres**: `psql "$DATABASE_URL" -c "SELECT ..."`
+   - **SQLite**: `sqlite3 db.sqlite "SELECT ..."`
+   - **Other**: Write a small ad-hoc script, run it, then delete it
+2. Verify records match UI inputs, relationships are correct, no orphans or duplicates
 
 ### 4c. Issue Handling
 
-When an issue is found (UI bug, database mismatch, JS error):
-
-1. **Document it:** what was expected vs what happened, screenshot path, relevant DB query results
-2. **Fix the code** — make the correction directly
-3. **Re-run the failing step** to verify the fix worked
-4. **Take a new screenshot** confirming the fix
+When an issue is found:
+1. Document: expected vs actual, screenshot path, DB query results
+2. Fix the code directly
+3. Re-run the failing step to verify
+4. Screenshot the fix
 
 ### 4d. Responsive Testing
 
-For the responsive testing task, revisit key pages at these viewports:
+Test key pages at multiple viewports. These are sensible defaults -- adjust if the project targets specific breakpoints:
 
-- **Mobile:** `agent-browser set viewport 375 812`
-- **Tablet:** `agent-browser set viewport 768 1024`
-- **Desktop:** `agent-browser set viewport 1440 900`
+- **Mobile**: `agent-browser set viewport 375 812` (iPhone-sized)
+- **Tablet**: `agent-browser set viewport 768 1024` (iPad-sized)
+- **Desktop**: `agent-browser set viewport 1440 900`
 
-At each viewport, screenshot every major page. Analyze for layout issues, overflow, broken alignment, and touch target sizes on mobile.
+Screenshot every major page at each size. Check for overflow, broken alignment, unreadable text, and touch target sizing on mobile.
 
-After completing each journey, mark its task as `completed` with TaskUpdate.
+Mark each journey complete (if using tasks) when done.
 
 ## Phase 5: Cleanup
 
-After all testing is complete:
 1. Stop the dev server background process
-2. Close the browser session: `agent-browser close`
+2. Close the browser: `agent-browser close`
 
 ## Phase 6: Report
 
-### Text Summary (always output)
-
-Present a concise summary:
+Present a summary:
 
 ```
 ## E2E Testing Complete
@@ -211,28 +185,17 @@ Present a concise summary:
 **Screenshots Captured:** [count]
 **Issues Found:** [count] ([count] fixed, [count] remaining)
 
-### Issues Fixed During Testing
-- [Description] — [file:line]
+### Issues Fixed
+- [Description] -- [file:line]
 
 ### Remaining Issues
-- [Description] — [severity: high/medium/low] — [file:line]
+- [Description] -- [severity: high/medium/low] -- [file:line]
 
-### Bug Hunt Findings (from code analysis)
-- [Description] — [severity] — [file:line]
+### Bug Hunt Findings
+- [Description] -- [severity] -- [file:line]
 
 ### Screenshots
 All saved to: `e2e-screenshots/`
 ```
 
-### Markdown Export (ask first)
-
-After the text summary, ask the user:
-
-> "Would you like me to export the full testing report to a markdown file? It includes per-journey breakdowns, all screenshot references, database validation results, and detailed findings — useful as context for follow-up fixes or GitHub issues."
-
-If yes, write a detailed report to `e2e-test-report.md` in the project root containing:
-- Full summary with stats
-- Per-journey breakdown: steps taken, screenshots, database checks, issues found
-- All issues with full details, fix status, and file references
-- Bug hunt findings from the code analysis sub-agent
-- Recommendations for any unresolved issues
+After the summary, offer to export a detailed markdown report to `e2e-test-report.md` with per-journey breakdowns, all screenshot references, database validation results, and recommendations.
