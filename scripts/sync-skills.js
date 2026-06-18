@@ -68,8 +68,22 @@ function skillName(skillDir) {
   const md = fs.readFileSync(path.join(skillDir, 'SKILL.md'), 'utf-8');
   const meta = parseFrontMatter(md) || {};
   const raw = (meta.name || path.basename(skillDir)).toString().trim();
-  // sanitize to a safe directory name
-  return raw.toLowerCase().replace(/[^a-z0-9._-]+/g, '-').replace(/^-+|-+$/g, '');
+  // Sanitize to a safe directory name. The name comes from an UNTRUSTED upstream
+  // SKILL.md, so strip path separators and any leading/trailing dots — otherwise a
+  // name like ".." would escape skills/ and a later fs.rmSync could delete the repo.
+  return raw
+    .toLowerCase()
+    .replace(/[^a-z0-9._-]+/g, '-')
+    .replace(/^[.-]+|[.-]+$/g, '');
+}
+
+/** True only if `name` is a safe, single-segment directory inside SKILLS_DIR. */
+function isSafeSkillName(name) {
+  if (!name || name === '.' || name === '..') return false;
+  if (name.includes('/') || name.includes('\\')) return false;
+  const dest = path.join(SKILLS_DIR, name);
+  const rel = path.relative(SKILLS_DIR, dest);
+  return rel !== '' && !rel.startsWith('..') && !path.isAbsolute(rel);
 }
 
 /** Find the LICENSE file at a repo root (case/extension insensitive). */
@@ -130,6 +144,11 @@ function main() {
 
       for (const skillDir of skillDirs) {
         const name = skillName(skillDir);
+        if (!isSafeSkillName(name)) {
+          const where = path.relative(tmp, skillDir).split(path.sep).join('/');
+          log(`  ⚠  unsafe/empty skill name from ${where} — skipping`);
+          continue;
+        }
         const dest = path.join(SKILLS_DIR, name);
         const existing = readMarker(dest);
 
