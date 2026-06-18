@@ -1,0 +1,10 @@
+{
+  "$schema": "https://anthropic.com/claude-code/plugin.schema.json",
+  "name": "lril",
+  "version": "0.1.0",
+  "description": "Second-brain workflow commands (PIV loop, content ideation, GitHub bug fix, validation) from the Dynamous claude-code-second-brain workshop",
+  "author": {
+    "name": "Sean Wright",
+    "email": "seanrobertwright@gmail.com"
+  }
+}
