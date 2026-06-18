@@ -71,6 +71,24 @@ Converts ambiguous human requests into an explicit contract: structured intent (
 
 ---
 
+### `lril` — Second-Brain Workflow Commands
+
+A suite of 19 slash commands (under the `lril:` namespace) that turn ad-hoc prompting into a repeatable **Plan → Implement → Validate** loop, from the Dynamous *claude-code-second-brain* workshop. Prime the agent on a codebase, plan a feature, execute the plan, then review, validate, and commit.
+
+```
+/lril:prime           # load codebase context
+/lril:plan-feature    # research-backed feature plan
+/lril:execute         # run the implementation plan
+/lril:code-review     # pre-commit technical review
+/lril:commit          # atomic, conventionally-tagged commit
+```
+
+Also includes root-cause analysis (`rca`), bug fixing (`implement-fix`), PRD creation (`create-prd`), system review, and a content-ideation suite (`content-linkedin`, `content-x`, `content-youtube`, `content-shorts`, `content-all`).
+
+**Use it when:** you want a disciplined, reviewable engineering workflow instead of one-shot prompts — especially across multi-step features where planning and validation matter.
+
+---
+
 ### `port-authhority` — Docker Port Conflict Manager
 
 Detects and resolves port collisions between Docker containers, docker-compose services, and host processes. Scans your environment, identifies conflicts, and suggests fixes — before you hit `address already in use` for the hundredth time.
