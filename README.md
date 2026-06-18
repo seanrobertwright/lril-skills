@@ -135,6 +135,20 @@ Claude Code natively watches two directories for skills:
 
 The installer copies skill files (each containing a `SKILL.md` with instructions) into the appropriate directory. Claude Code detects them automatically on restart — no plugin registration, no config files, no marketplace accounts.
 
+## Aggregated skills
+
+In addition to the skills authored here, this repo **mirrors curated skills from other authors** so you can install everything from one place. Vendored skills live in `skills/` alongside the originals and are listed in [`VENDORED.md`](VENDORED.md) with their source repo, pinned commit, and license.
+
+How it works:
+
+- **`sources.json`** declares which upstream repos to mirror. Only repos with a redistribution-permitting license (MIT, Apache-2.0, etc.) are included — each vendored skill keeps its upstream `LICENSE` file and a `.vendor.json` provenance marker.
+- **`scripts/sync-skills.js`** clones each source, flattens every skill into `skills/<name>/`, and regenerates `VENDORED.md`. Skills authored in this repo are never overwritten.
+- **`.github/workflows/sync-skills.yml`** runs the sync on a daily schedule (and on demand) and opens a PR whenever an upstream changes — so updates flow in automatically, with review before they ship.
+
+> Vendored skills are mirrored verbatim and are **not** edited here. Report issues with a vendored skill to its upstream repo (linked in `VENDORED.md`); fixes flow back on the next sync.
+
+**Currently mirrored:** [`mattpocock/skills`](https://github.com/mattpocock/skills) (MIT) — Matt Pocock's engineering, productivity, and writing skills (TDD, triage, domain modeling, and more).
+
 ## Requirements
 
 - **Node.js** >= 18

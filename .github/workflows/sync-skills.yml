@@ -1,0 +1,50 @@
+name: Sync vendored skills
+
+# Mirrors the upstream repos listed in sources.json into skills/ and opens a PR
+# when anything changed. This is the "updates when they update" mechanism:
+# it runs on a schedule and on-demand, and you review the PR before it ships.
+#
+# Requires (one-time, repo Settings → Actions → General → Workflow permissions):
+#   • "Read and write permissions"
+#   • "Allow GitHub Actions to create and approve pull requests"
+
+on:
+  schedule:
+    - cron: '17 6 * * *'   # daily at 06:17 UTC
+  workflow_dispatch: {}      # manual "Run workflow" button
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Sync skills from sources.json
+        env:
+          SYNC_TIMESTAMP: ${{ github.event.repository.updated_at }}
+        run: node scripts/sync-skills.js
+
+      - name: Open PR with any changes
+        uses: peter-evans/create-pull-request@v6
+        with:
+          branch: sync/vendored-skills
+          commit-message: 'chore: sync vendored skills from upstream'
+          title: 'chore: sync vendored skills from upstream'
+          body: |
+            Automated sync of vendored skills from the sources in `sources.json`.
+
+            Review the diff below — vendored skills are mirrored verbatim from
+            their upstream repos (see `VENDORED.md` for source + commit + license).
+            Merge to publish the updates.
+          labels: automated, skills-sync
+          delete-branch: true

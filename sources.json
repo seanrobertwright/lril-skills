@@ -1,0 +1,13 @@
+{
+  "$comment": "Upstream skill repos vendored into skills/ by scripts/sync-skills.js. Each source is shallow-cloned, every folder containing a SKILL.md is flattened into skills/<name>/, and the upstream LICENSE + provenance are recorded. Only add sources whose license permits redistribution (MIT, Apache-2.0, BSD, etc.). Repos with NO license are all-rights-reserved and must not be vendored.",
+  "sources": [
+    {
+      "name": "mattpocock/skills",
+      "repo": "https://github.com/mattpocock/skills.git",
+      "branch": "main",
+      "skillsDir": "skills",
+      "exclude": ["deprecated", "in-progress"],
+      "license": "MIT"
+    }
+  ]
+}
