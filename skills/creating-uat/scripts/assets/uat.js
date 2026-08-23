@@ -10,7 +10,7 @@
   var SEVERITIES = [['', '— pick one —'], ['cosmetic', 'Cosmetic — it just looks off'],
                     ['annoying', 'Annoying — it works but it bugs me'],
                     ['blocker', 'Blocks me — I could not carry on because of it']];
-  var STATUS_LABEL = { pass: 'Pass', fail: 'Fail', notdone: 'Not done' };
+  var STATUS_LABEL = { '': 'Not answered yet', pass: 'Pass', fail: 'Fail', notdone: 'Not done' };
   var LEVEL_LABEL = {
     novice: 'written for a first-time tester',
     intermediate: 'written for a confident computer user',
@@ -235,22 +235,21 @@
 
     var answer = h('div', { class: 'answer' });
 
-    // status
+    // status — '' is the starting state and is shown as its own chip, so an
+    // untouched test reads as "not answered yet" rather than as a blank row
     var row = h('div', { class: 'statusrow' }, [h('span', { class: 'lbl', text: 'Result' })]);
-    ['pass', 'fail', 'notdone'].forEach(function (v) {
-      var input = h('input', { type: 'radio', name: 'st-' + t.id, value: v, checked: a.status === v });
+    ['', 'pass', 'fail', 'notdone'].forEach(function (v) {
+      var input = h('input', {
+        type: 'radio', name: 'st-' + t.id, value: v, checked: a.status === v,
+        title: v ? null : 'I have not got to this test yet'
+      });
       input.addEventListener('change', function () {
         a.status = v; card.setAttribute('data-status', v); markDirty(); refresh(); syncRequired();
       });
-      row.appendChild(h('label', { class: 'radio' }, [input, h('span', { class: v, text: STATUS_LABEL[v] })]));
+      row.appendChild(h('label', { class: 'radio' }, [
+        input, h('span', { class: v || 'unanswered', text: STATUS_LABEL[v] })
+      ]));
     });
-    var clear = h('button', { class: 'ghost small', type: 'button', text: 'clear', title: 'Remove my answer for this test',
-      onclick: function () {
-        a.status = ''; card.setAttribute('data-status', '');
-        card.querySelectorAll('input[name="st-' + t.id + '"]').forEach(function (r) { r.checked = false; });
-        markDirty(); refresh(); syncRequired();
-      } });
-    row.appendChild(clear);
     answer.appendChild(row);
 
     // notes

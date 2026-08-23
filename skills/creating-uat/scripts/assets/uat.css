@@ -186,6 +186,11 @@ button.small { padding: 5px 10px; font-size: 13.5px; }
 }
 .radio:hover span { border-color: var(--ink-3); }
 .radio input:focus-visible + span { outline: 3px solid color-mix(in srgb, var(--accent) 45%, transparent); }
+/* the starting state: clearly selected, but visibly not an answer */
+.radio span.unanswered { font-weight: 500; font-style: italic; color: var(--ink-3); }
+.radio input:checked + span.unanswered {
+  background: var(--panel); border-color: var(--ink-3); border-style: dashed; color: var(--ink-2);
+}
 .radio input:checked + span.pass { background: var(--pass); border-color: transparent; color: #fff; }
 .radio input:checked + span.fail { background: var(--fail); border-color: transparent; color: #fff; }
 .radio input:checked + span.notdone { background: var(--skip); border-color: transparent; color: #fff; }

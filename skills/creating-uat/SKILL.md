@@ -232,9 +232,10 @@ Give them exactly this, filled in with the real path:
 >    `python docs/uat/tools/uat_server.py docs/uat/UAT-myapp-2026-08-23.md`
 >    (or `node docs/uat/tools/uat-server.mjs docs/uat/UAT-myapp-2026-08-23.md`)
 > 3. Your web browser opens the checklist. **Leave that terminal window open** while you work.
-> 4. Work top to bottom. For each test choose **Pass**, **Fail** or **Not done**, and write what you
->    saw. Use the purple box for anything you do not like the look or feel of, even when the test
->    passed. Add pictures by clicking the picture box, dragging a file in, or pressing Ctrl+V.
+> 4. Work top to bottom. Every test starts at **Not answered yet** — change it to **Pass**, **Fail**
+>    or **Not done** as you go, and write what you saw. Use the purple box for anything you do not
+>    like the look or feel of, even when the test passed. Add pictures by clicking the picture box,
+>    dragging a file in, or pressing Ctrl+V.
 > 5. Click **Save my work** whenever you like — it also saves itself every minute.
 > 6. When everything is answered click **Submit**. If you cannot finish, use
 >    **Submit what I have so far** — the report is then clearly marked as unfinished.

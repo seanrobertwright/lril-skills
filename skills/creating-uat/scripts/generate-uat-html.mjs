@@ -336,14 +336,20 @@ function buildModel(mdPath, lines, meta, sections, spans) {
   };
 }
 
+function readAsset(name) {
+  return fs.readFileSync(path.join(ASSETS, name), 'utf8').replace(/\r\n/g, '\n');
+}
+
 function buildHtml(model) {
   const BS = String.fromCharCode(92);
   const payload = JSON.stringify(model)
     .split('<').join(BS + 'u003c')
     .split(String.fromCharCode(0x2028)).join(BS + 'u2028')
     .split(String.fromCharCode(0x2029)).join(BS + 'u2029');
-  const css = fs.readFileSync(path.join(ASSETS, 'uat.css'), 'utf8');
-  const js = fs.readFileSync(path.join(ASSETS, 'uat.js'), 'utf8');
+  // normalise newlines: a git checkout with core.autocrlf turns these into CRLF,
+  // and Python's text read strips them — inline them the same way in both runtimes
+  const css = readAsset('uat.css');
+  const js = readAsset('uat.js');
   return `<!doctype html>
 <html lang="en">
 <head>
