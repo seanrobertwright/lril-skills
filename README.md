@@ -117,7 +117,7 @@ Converts ambiguous human requests into an explicit contract: structured intent (
 
 ### `lril` — Second-Brain Workflow Commands
 
-A suite of 20 slash commands (under the `lril:` namespace) that turn ad-hoc prompting into a repeatable **Plan → Implement → Validate → Ship** loop, from the Dynamous *claude-code-second-brain* workshop. Prime the agent on a codebase, plan a feature, execute the plan, then review, validate, commit, and open the PR.
+A suite of 19 slash commands (under the `lril:` namespace) that turn ad-hoc prompting into a repeatable **Plan → Implement → Validate** loop, from the Dynamous *claude-code-second-brain* workshop. Prime the agent on a codebase, plan a feature, execute the plan, then review, validate, and commit.
 
 ```
 /lril:prime           # load codebase context
@@ -125,7 +125,6 @@ A suite of 20 slash commands (under the `lril:` namespace) that turn ad-hoc prom
 /lril:execute         # run the implementation plan
 /lril:code-review     # pre-commit technical review
 /lril:commit          # atomic, conventionally-tagged commit
-/lril:ship            # sync, validate, version, changelog, push, PR
 ```
 
 Also includes root-cause analysis (`rca`), bug fixing (`implement-fix`), PRD creation (`create-prd`), system review, and a content-ideation suite (`content-linkedin`, `content-x`, `content-youtube`, `content-shorts`, `content-all`).
