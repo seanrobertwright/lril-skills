@@ -1,6 +1,6 @@
 ---
 name: creating-uat
-description: Build a complete User Acceptance Test for a codebase — an exhaustive, beginner-proof markdown checklist plus an HTML form the tester fills in (pass/fail/not done, look-and-feel comments, screenshots) that writes their answers back into the markdown. Use when the user asks for a UAT, an acceptance test checklist, a manual test plan, a "test everything" script for a non-technical tester, or wants someone to sign off on an app before release.
+description: Build a complete User Acceptance Test for a codebase — an exhaustive markdown checklist written to the tester's skill level (novice / intermediate / expert), plus an HTML form the tester fills in (pass/fail/not done, look-and-feel comments, screenshots) that writes their answers back into the markdown. Use when the user asks for a UAT, an acceptance test checklist, a manual test plan, a "test everything" script for a non-technical tester or a QA engineer, or wants someone to sign off on an app before release.
 ---
 
 # Creating a UAT
