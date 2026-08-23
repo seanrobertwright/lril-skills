@@ -4,6 +4,7 @@
 version: 1
 app: Demo App
 generated: 2026-08-23
+tester_level: novice
 commit: abc1234
 branch: main
 -->

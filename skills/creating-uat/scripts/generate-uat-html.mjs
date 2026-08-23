@@ -324,6 +324,7 @@ function buildModel(mdPath, lines, meta, sections, spans) {
     slug,
     title,
     app: meta.app || '',
+    level: (meta.tester_level || '').trim().toLowerCase(),
     generated: meta.generated || '',
     intro: renderMd(introLines),
     outro: renderMd(outroLines),

@@ -370,6 +370,7 @@ def build_model(md_path, lines, meta, sections, spans):
         "slug": slug,
         "title": title,
         "app": meta.get("app", ""),
+        "level": meta.get("tester_level", "").strip().lower(),
         "generated": meta.get("generated", ""),
         "intro": intro,
         "outro": outro,

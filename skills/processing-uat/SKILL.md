@@ -23,6 +23,13 @@ fix plan you can execute, grounded in the code rather than in guesses about what
      say so.
 5. Note the tester's name and `last_run` date from the meta block. If the code has moved on since,
    flag that some failures may already be fixed.
+6. Read `tester_level` from the meta block — it changes how you read the evidence:
+   - **novice** — notes are describing symptoms, not causes. "It didn't work" plus a screenshot may be
+     the whole signal. Lean on the screenshot and reproduce the step yourself before concluding
+     anything. Expect some failures to be the tester losing their way rather than the app breaking.
+   - **intermediate** — notes usually name the screen and the error text. Trust them, verify in code.
+   - **expert** — notes may already contain a diagnosis. Treat it as a strong hypothesis, not a
+     finding: confirm it in the source before you act on it, and say so if you disagree.
 
 ## Phase 1 — Collect every issue
 

@@ -14,7 +14,7 @@ GitHub and in any editor.
 
 | Marker | Where | Purpose |
 |---|---|---|
-| `<!-- uat:meta ... -->` | once, after the H1 | key/value run metadata |
+| `<!-- uat:meta ... -->` | once, after the H1 | key/value run metadata (see §1a) |
 | `<!-- uat:summary:start -->` … `<!-- uat:summary:end -->` | once, after meta | rewritten on submit with run results |
 | `<!-- uat:section id=N title="..." -->` | after each `## ` section heading | starts a section |
 | `<!-- uat:test id=N.M -->` | after each `### ` test heading | starts a test |
@@ -31,6 +31,22 @@ Rules:
 - Everything between `<!-- uat:test id=X -->` and `<!-- uat:answer:start id=X -->` is the test body
   and is rendered read-only in the HTML.
 
+## 1a. Meta keys
+
+Free-form `key: value` lines. Unknown keys are preserved untouched. These are the ones with meaning:
+
+| Key | Written by | Meaning |
+|---|---|---|
+| `version` | author | format version — `1` |
+| `app` | author | display name, used as the HTML title fallback |
+| `generated` | author | the date the checklist was written |
+| `tester_level` | author | `novice`, `intermediate` or `expert` — the detail standard the checklist was written to (see `detail-levels.md`). Shown in the form header so the tester knows what they were given |
+| `commit`, `branch`, `repo` | author | what state of the code the checklist describes |
+| `tester` | **server, on submit** | the name the tester typed |
+| `last_run` | **server, on submit** | timestamp of the last submit |
+
+`tester` and `last_run` are rewritten on every submit; anything else you put in the block survives.
+
 ## 2. Canonical skeleton
 
 ```markdown
@@ -40,6 +56,7 @@ Rules:
 version: 1
 app: MyApp
 generated: 2026-08-23
+tester_level: novice
 commit: a1b2c3d
 branch: main
 repo: E:/Projects/MyApp
