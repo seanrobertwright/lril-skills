@@ -3,10 +3,11 @@ name: lril
 description: >
   Second-brain workflow command suite for Claude Code, built around the PIV
   loop (Plan → Implement → Validate) from the Dynamous claude-code-second-brain
-  workshop. Installs 19 slash commands under the `lril:` namespace covering
+  workshop. Installs 20 slash commands under the `lril:` namespace covering
   project priming, feature planning, plan execution, code review, root-cause
-  analysis, bug fixing, validation, PRD creation, atomic commits, and a content
-  ideation suite (LinkedIn, X, YouTube, Shorts). Use when you want a repeatable,
+  analysis, bug fixing, validation, PRD creation, atomic commits, shipping a
+  branch as a pull request, and a content ideation suite (LinkedIn, X, YouTube,
+  Shorts). Use when you want a repeatable,
   reviewable engineering workflow instead of one-shot prompting — prime the
   agent on a codebase, plan a feature, execute the plan, then review and
   validate the result.
@@ -35,7 +36,10 @@ The core workflow is **Plan → Implement → Validate**:
 4. **Validate** — `/lril:code-review` (pre-commit technical review),
    `/lril:code-review-fix`, `/lril:validate`, and `/lril:commit` close the loop
    with atomic, conventionally-tagged commits.
-5. **Reflect** — `/lril:execution-report` and `/lril:system-review` compare what
+5. **Ship** — `/lril:ship` takes the finished branch the rest of the way: syncs
+   with the base branch, runs the project's validation, reviews the diff, bumps
+   the version, updates the changelog, pushes, and opens the pull request.
+6. **Reflect** — `/lril:execution-report` and `/lril:system-review` compare what
    was built against the plan to surface process improvements.
 
 ## Commands
@@ -54,6 +58,7 @@ The core workflow is **Plan → Implement → Validate**:
 | `code-review-fix` | Apply fixes surfaced by a code review |
 | `validate` | Validate an implementation against its requirements |
 | `commit` | Commit all uncommitted changes with an atomic, conventionally-tagged message |
+| `ship` | Ship the branch: sync with base, validate, review the diff, bump the version, update the changelog, commit, push, open the PR |
 | `execution-report` | Generate an implementation report for system review |
 | `system-review` | Analyze implementation against plan for process improvements |
 | `content-all` | Generate content for all channels at once |
