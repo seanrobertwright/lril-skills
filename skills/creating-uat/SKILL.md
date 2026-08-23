@@ -1,6 +1,6 @@
 ---
 name: creating-uat
-description: Build a complete User Acceptance Test for a codebase — an exhaustive, beginner-proof markdown checklist plus an HTML form the tester fills in (pass/fail/not done, look-and-feel comments, screenshots) that writes their answers back into the markdown. Use when the user asks for a UAT, an acceptance test checklist, a manual test plan, a "test everything" script for a non-technical tester, or wants someone to sign off on an app before release.
+description: Build a complete User Acceptance Test for a codebase — an exhaustive markdown checklist written to the tester's skill level (novice / intermediate / expert), plus an HTML form the tester fills in (pass/fail/not done, look-and-feel comments, screenshots) that writes their answers back into the markdown. Use when the user asks for a UAT, an acceptance test checklist, a manual test plan, a "test everything" script for a non-technical tester or a QA engineer, or wants someone to sign off on an app before release.
 ---
 
 # Creating a UAT
@@ -35,8 +35,18 @@ Use `AskUserQuestion` with concrete options. Skip a question only if the user al
    writing a single command; Windows PowerShell and macOS bash need different text.
 4. **Destructive tests** — include irreversible procedures (data deletion, restore-from-backup, key
    rotation, migration rollback)? Offer "include, clearly flagged" vs "exclude".
-5. **Who is the tester** — the user themselves, a colleague, or a non-technical stakeholder? Confirm
-   the "has never used a terminal" standard applies (it is the default).
+5. **Tester skill level** — ask this explicitly, with these three options. It decides how much detail
+   every step carries, and it is the single biggest factor in whether the checklist is usable:
+   - **Novice** — has never opened a terminal. Every physical action spelled out, full glossary,
+     "how to open a terminal" section. Recommend this when in doubt.
+   - **Intermediate** — comfortable with a computer and can run commands, but does not know this
+     codebase. One logical action per step, project vocabulary only.
+   - **Expert** — a developer or QA engineer. Assertions rather than scenery, verification through
+     API/logs/database where that is faster, no hand-holding.
+
+   Ask who will physically execute the checklist if the user is unsure, and write for the **lower**
+   level when two people of different levels will share one run. Read `references/detail-levels.md`
+   for the full standard and a worked example of the same test at all three levels.
 6. **Credentials and test data** — what accounts, keys, or seed data will exist? A test that needs a
    login the tester does not have is a dead test.
 
@@ -105,7 +115,13 @@ Every test needs an `<!-- uat:test id=N.M -->` marker under its `### N.M  Title`
 section that has a `<!-- uat:section id=N title="..." -->` marker. You do not need to write the
 answer blocks — the generator injects them.
 
+Record the level from Phase 0 in the meta block as `tester_level: novice | intermediate | expert`, so
+the file states who it was written for and the form can show it.
+
 ### The shape of every test
+
+Every test has the same five parts at every level — Goal, Before you start, Steps, PASS looks like,
+If it does not work. Only the amount of detail inside them changes.
 
 ```markdown
 ### 3.2  Save a new report
@@ -122,25 +138,41 @@ answer blocks — the generator injects them.
 - **If it does not work:** Write down any red text that appears, and attach a picture of the screen.
 ```
 
-### Writing rules — the "has never used a computer" standard
+### How much detail — read `references/detail-levels.md`
 
-Enforce every one of these:
+That file is the standard for the level chosen in Phase 0, with the same test written three ways.
+The short version:
 
-1. **One physical action per numbered step.** Opening a terminal and typing in it are two steps.
-2. **Give the exact text to type**, in backticks, complete. Never `npm run <something>`. If a value
+| | **Novice** | **Intermediate** | **Expert** |
+|---|---|---|---|
+| Steps | one physical action each | one logical action each | one outcome each |
+| Glossary | every technical word | project vocabulary only | none |
+| Section 0 | how to open a terminal | prerequisites with versions | one line |
+| Expected result | what appears on screen | the observable outcome | an assertion |
+| Verify via | the UI only | the UI, plus simple commands | whatever is fastest — API, logs, database |
+
+**Coverage does not change with level.** Every surface from Phase 1 gets a test whoever is running it;
+only the wording changes. An Expert checklist is shorter, not thinner.
+
+### Writing rules — apply at every level
+
+1. **Give the exact text to type**, in backticks, complete. Never `npm run <something>`. If a value
    must be filled in, show a clearly marked placeholder and say where to get the real value.
-3. **Name what to click** using the real label discovered in Phase 1, plus where it is on screen.
-4. **Describe what they should SEE.** The tester verifies by comparing, so the expected screen, text
-   or output must be written down.
-5. **Define every technical word** the first time it appears, and collect them in a glossary section.
-6. **Spell out navigation.** "Open your web browser, click the address bar at the top, type
-   `http://localhost:3000` and press Enter" — never "go to the dashboard".
-7. **Binary PASS/FAIL.** If a step could reasonably be judged either way, it is written badly.
-8. **Order by dependency**: install → configure → start → use → operational/destructive last. State
+2. **Name what to click** using the real label discovered in Phase 1.
+3. **Write down the expected result.** The tester verifies by comparing; a step with no stated
+   outcome cannot be passed or failed.
+4. **Binary PASS/FAIL.** If two people could reasonably record different results from the same
+   observation, the test is written badly.
+5. **One verifiable claim per test.** Merging three assertions into one checkbox makes a failure
+   impossible to triage.
+6. **Order by dependency**: install → configure → start → use → operational/destructive last. State
    each test's preconditions in **Before you start**.
-9. **Flag every destructive step** in bold, with what is lost and how to undo it.
-10. **Branch on the unexpected.** "If you do not see X, do Y first."
-11. **Keep the tester unblocked**: if one test fails, say whether they can carry on.
+7. **Flag every destructive step** in bold, with what is lost and how to undo it.
+8. **Say what to capture on failure**, pitched at the level: the exact red text for a Novice, the
+   failing response and log line for an Expert.
+9. **Keep the tester unblocked**: if one test fails, say whether they can carry on.
+10. **Branch on the unexpected.** "If you do not see X, do Y first." (Essential for Novice, useful at
+    every level.)
 
 Do NOT add "how did this look?" questions to the tests — the form gives every test its own look-and-feel
 comment box with a severity, and lets the tester report anything the checklist never asked about.
@@ -231,7 +263,9 @@ Point the user at the **processing-uat** skill to turn that file into a fix plan
 
 - `references/uat-file-format.md` — the markdown contract: markers, answer blocks, summary, findings,
   sidecar files, validation rules. **Read this before writing a UAT.**
-- `references/example-uat.md` — a small complete example.
+- `references/detail-levels.md` — the Novice / Intermediate / Expert writing standards, with the same
+  test written at all three. **Read this after Phase 0, before writing any test.**
+- `references/example-uat.md` — a small complete example, written at Novice level.
 - `scripts/generate_uat_html.py`, `scripts/generate-uat-html.mjs` — markdown → HTML form.
 - `scripts/uat_server.py`, `scripts/uat-server.mjs` — save / upload / submit helper.
 - `scripts/assets/uat.css`, `scripts/assets/uat.js` — the form itself, inlined at generation time.

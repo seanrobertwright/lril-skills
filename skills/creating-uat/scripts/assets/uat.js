@@ -11,6 +11,11 @@
                     ['annoying', 'Annoying — it works but it bugs me'],
                     ['blocker', 'Blocks me — I could not carry on because of it']];
   var STATUS_LABEL = { pass: 'Pass', fail: 'Fail', notdone: 'Not done' };
+  var LEVEL_LABEL = {
+    novice: 'written for a first-time tester',
+    intermediate: 'written for a confident computer user',
+    expert: 'written for a developer or QA engineer'
+  };
 
   var state = { tester: '', answers: {}, findings: [], nextFinding: 1 };
   var online = false, dirty = false, lastOwner = null, filter = 'all';
@@ -339,7 +344,10 @@
       h('div', { class: 'topbar-inner' }, [
         h('div', {}, [
           h('h1', { text: MODEL.title }),
-          h('div', { class: 'file', text: MODEL.file })
+          h('div', {
+            class: 'file',
+            text: MODEL.file + (LEVEL_LABEL[MODEL.level] ? '  ·  ' + LEVEL_LABEL[MODEL.level] : '')
+          })
         ]),
         h('div', { class: 'spacer' }),
         els.counts = h('div', { class: 'counts' }, [
