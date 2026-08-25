@@ -4,7 +4,7 @@
 
 <p align="center">
   <img src="https://img.shields.io/badge/version-1.0.0-blue?style=flat-square" alt="Version">
-  <img src="https://img.shields.io/badge/skills-33-blueviolet?style=flat-square" alt="Skills">
+  <img src="https://img.shields.io/badge/skills-34-blueviolet?style=flat-square" alt="Skills">
   <img src="https://img.shields.io/badge/license-MIT-green?style=flat-square" alt="License">
   <img src="https://img.shields.io/badge/node-%3E%3D18-brightgreen?style=flat-square" alt="Node">
   <img src="https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey?style=flat-square" alt="Platform">
@@ -33,14 +33,14 @@ That's it. An interactive installer walks you through selecting skills and choos
 
 ## Skills at a glance
 
-**33 skills** — 8 authored here, 25 mirrored from other authors.
+**34 skills** — 9 authored here, 25 mirrored from other authors.
 
 | | |
 |---|---|
 | **Testing & QA** | [`agent-browser`](#agent-browser--browser-automation) · [`e2e-test`](#e2e-test--end-to-end-testing) · [`creating-uat`](#creating-uat--user-acceptance-testing) · [`processing-uat`](#processing-uat--turn-uat-results-into-a-fix-plan) · `tdd` · `diagnosing-bugs` |
 | **Planning & design** | [`intent-engine`](#intent-engine--structured-intent-planning) · `codebase-design` · `domain-modeling` · `grilling` · `prototype` · `to-prd` · `to-issues` |
 | **Workflow** | [`lril`](#lril--second-brain-workflow-commands) · `implement` · `triage` · `handoff` · `resolving-merge-conflicts` |
-| **Environment** | [`port-authhority`](#port-authhority--docker-port-conflict-manager) · `setup-pre-commit` · `git-guardrails-claude-code` |
+| **Environment** | [`port-authhority`](#port-authhority--docker-port-conflict-manager) · [`context-diet`](#context-diet--shrink-what-loads-every-session) · `setup-pre-commit` · `git-guardrails-claude-code` |
 | **Communication** | [`excalidraw-diagram`](#excalidraw-diagram--visual-diagramming) · `edit-article` · `teach` · `obsidian-vault` |
 
 ---
@@ -143,6 +143,23 @@ Detects and resolves port collisions between Docker containers, docker-compose s
 ```
 
 **Use it when:** you're deploying containers, running docker-compose, or debugging `EADDRINUSE` / port binding errors.
+
+---
+
+### `context-diet` — Shrink what loads every session
+
+Audits everything that enters context at launch — root and nested `CLAUDE.md`, `.claude/rules/`, resolved `@imports`, `MEMORY.md`, and installed skill descriptions — then moves what is only situationally relevant to a mechanism that loads when it matters. What the codebase already states gets deleted instead of relocated.
+
+```
+python skills/context-diet/scripts/discover.py --root .   # measure eager tokens
+#   ... review .claude/context-diet-plan.md, then:
+python skills/context-diet/scripts/apply.py    --root .   # transactional, with backups
+python skills/context-diet/scripts/verify.py   --root .   # nothing lost, every pointer resolves
+```
+
+It reports in **eager tokens removed**, not lines deleted — a shorter file that still loads the same content has saved nothing, which is why it never emits `@path` imports. Safety-critical rules stay in root `CLAUDE.md` however situational they are, because only root `CLAUDE.md` is re-injected after `/compact`. Nothing is written without your approval of the plan, and `apply.py` refuses to run against files that changed since they were measured rather than cutting at stale offsets.
+
+**Use it when:** startup context is too full, your `CLAUDE.md` has grown past what anyone reads, or instructions are being ignored because they compete with hundreds of lines of situational detail.
 
 ---
 
