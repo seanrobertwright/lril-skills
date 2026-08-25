@@ -67,6 +67,7 @@ Cover all of these that exist:
 |---|---|
 | **Setup / operations** | every prerequisite, install command, container, migration, seed, env var (name + what it does), and every script in the project's task runner |
 | **UI** | every page/route, every button/link/form/modal by its **real on-screen label**, and each state: empty, loading, success, error |
+| **UI addresses** | the URL of every page you write a test for — these become `uat:url` markers so the tester can open the screen and annotate it |
 | **HTTP API** | every endpoint: method, path, auth tier, a copy-pasteable request, success status, error statuses |
 | **CLI** | every command and flag, with exact syntax and expected output |
 | **Background work** | cron jobs, queues, workers, webhooks, scheduled tasks — how to trigger one and how to see it ran |
@@ -117,6 +118,12 @@ answer blocks — the generator injects them.
 
 Record the level from Phase 0 in the meta block as `tester_level: novice | intermediate | expert`, so
 the file states who it was written for and the form can show it.
+
+Set `base_url:` in the meta block to where the app runs (`http://localhost:3000`), and give every test
+about a specific screen a `<!-- uat:url /that/path -->` marker directly under its `uat:test` marker.
+The form then offers **Open this screen and annotate it** on those tests, and whatever the tester pins
+comes back into that test's notes and screenshots. Tests without the marker are unaffected — use it
+wherever a test is really about one screen, and leave it off for setup, CLI and API tests.
 
 ### The shape of every test
 
@@ -236,10 +243,15 @@ Give them exactly this, filled in with the real path:
 >    or **Not done** as you go, and write what you saw. Use the purple box for anything you do not
 >    like the look or feel of, even when the test passed. Add pictures by clicking the picture box,
 >    dragging a file in, or pressing Ctrl+V.
-> 5. Click **Save my work** whenever you like — it also saves itself every minute.
-> 6. When everything is answered click **Submit**. If you cannot finish, use
+> 5. Where a test offers **Open this screen and annotate it**, click it. The app opens in a new tab.
+>    Try the thing the test asks for, then click the **Annotate this page** button on your bookmarks
+>    bar (the checklist shows you how to put it there, once). Click anything on the screen to drop a
+>    numbered pin, say what is wrong, then press **Done**. Your notes and a picture go straight onto
+>    that test — switch back to the checklist tab and they are already there.
+> 6. Click **Save my work** whenever you like — it also saves itself every minute.
+> 7. When everything is answered click **Submit**. If you cannot finish, use
 >    **Submit what I have so far** — the report is then clearly marked as unfinished.
-> 7. Press `Ctrl`+`C` in the terminal when you are done.
+> 8. Press `Ctrl`+`C` in the terminal when you are done.
 
 Tell them the Submit button refuses an incomplete run and lists exactly what is missing with a
 "take me there" link, so they cannot accidentally hand in half a UAT.
@@ -270,6 +282,11 @@ Point the user at the **processing-uat** skill to turn that file into a fix plan
 - `scripts/generate_uat_html.py`, `scripts/generate-uat-html.mjs` — markdown → HTML form.
 - `scripts/uat_server.py`, `scripts/uat-server.mjs` — save / upload / submit helper.
 - `scripts/assets/uat.css`, `scripts/assets/uat.js` — the form itself, inlined at generation time.
+- `scripts/assets/annotate.js` — the pin-and-comment overlay that runs on the app under test. The
+  checklist embeds it in the bookmarklet, so a strict Content-Security-Policy cannot block it.
+- `scripts/assets/vendor/html2canvas.min.js` — turns the annotated page into an image (MIT; see
+  `vendor/.vendor-note.md`). It re-renders the DOM rather than photographing the screen, which is why
+  the tester is shown the result and asked whether it looks right before it is sent.
 
 ## Troubleshooting
 

@@ -23,6 +23,7 @@ ID_RE = re.compile(r"^[A-Za-z0-9._-]+$")
 META_START = re.compile(r"^<!--\s*uat:meta\s*$")
 SECTION_RE = re.compile(r"^<!--\s*uat:section\s+(.*?)-->\s*$")
 TEST_RE = re.compile(r"^<!--\s*uat:test\s+(.*?)-->\s*$")
+URL_RE = re.compile(r"^<!--\s*uat:url\s+(\S+)\s*-->\s*$")
 ANS_START_RE = re.compile(r"^<!--\s*uat:answer:start\s+id=([^\s]+)\s*-->\s*$")
 ANS_END_RE = re.compile(r"^<!--\s*uat:answer:end\s+id=([^\s]+)\s*-->\s*$")
 ATTR_RE = re.compile(r'(\w+)=("([^"]*)"|\S+)')
@@ -173,6 +174,19 @@ def render_md(lines):
     return "\n".join(out)
 
 
+ABSOLUTE_URL = re.compile(r"^[a-zA-Z][\w+.-]*://")
+
+
+def resolve_url(url, base):
+    """A uat:url may be absolute, or relative to the meta block's base_url."""
+    url = (url or "").strip()
+    if not url or ABSOLUTE_URL.match(url):
+        return url
+    if not base:
+        return url
+    return base + ("" if url.startswith("/") else "/") + url
+
+
 # ----------------------------------------------------------------------- parse
 
 def parse_attrs(raw):
@@ -270,8 +284,17 @@ def parse(lines, path):
             if cur_section is None:
                 raise UatError("test %s is not inside any section (add a <!-- uat:section --> marker)" % tid)
             title = re.sub(r"^%s\s*" % re.escape(tid), "", (heading or tid)).strip() or tid
-            cur_test = {"id": tid, "title": title, "_body_start": i + 1, "_marker": i, "_answer": None}
+            cur_test = {"id": tid, "title": title, "url": "",
+                        "_body_start": i + 1, "_marker": i, "_answer": None}
             cur_section["tests"].append(cur_test)
+            i += 1
+            continue
+
+        m = URL_RE.match(stripped)
+        if m:
+            if cur_test is None:
+                raise UatError("line %d: uat:url must sit inside a test" % (i + 1))
+            cur_test["url"] = m.group(1)
             i += 1
             continue
 
@@ -324,6 +347,7 @@ def normalise(lines, meta, sections, spans, path):
 
 def build_model(md_path, lines, meta, sections, spans):
     slug = os.path.splitext(os.path.basename(md_path))[0]
+    base = meta.get("base_url", "").strip().rstrip("/")
     title = meta.get("app") or slug
     for line in lines:
         if line.startswith("# "):
@@ -365,6 +389,7 @@ def build_model(md_path, lines, meta, sections, spans):
         outro_lines.append(lines[idx])
     outro = render_md(outro_lines)
 
+    has_urls = any(t["url"] for sec in sections for t in sec["tests"])
     model = {
         "file": os.path.basename(md_path),
         "slug": slug,
@@ -374,9 +399,11 @@ def build_model(md_path, lines, meta, sections, spans):
         "generated": meta.get("generated", ""),
         "intro": intro,
         "outro": outro,
+        "annotator": read_asset("annotate.js") if has_urls else "",
         "sections": [
             {"id": s["id"], "title": s["title"],
-             "tests": [{"id": t["id"], "title": t["title"], "body": render_md(body_lines(lines, t))}
+             "tests": [{"id": t["id"], "title": t["title"], "url": resolve_url(t["url"], base),
+                        "body": render_md(body_lines(lines, t))}
                        for t in s["tests"]]}
             for s in sections
         ],

@@ -18,6 +18,7 @@ GitHub and in any editor.
 | `<!-- uat:summary:start -->` … `<!-- uat:summary:end -->` | once, after meta | rewritten on submit with run results |
 | `<!-- uat:section id=N title="..." -->` | after each `## ` section heading | starts a section |
 | `<!-- uat:test id=N.M -->` | after each `### ` test heading | starts a test |
+| `<!-- uat:url <path-or-url> -->` | inside a test | the app screen this test is about, so the checklist can offer to open and annotate it |
 | `<!-- uat:answer:start id=N.M -->` … `<!-- uat:answer:end id=N.M -->` | end of each test | the tester's answer; rewritten on submit |
 | `<!-- uat:findings:start -->` … `<!-- uat:findings:end -->` | once, near the end | ad-hoc tester-reported findings; rewritten on submit |
 
@@ -41,6 +42,7 @@ Free-form `key: value` lines. Unknown keys are preserved untouched. These are th
 | `app` | author | display name, used as the HTML title fallback |
 | `generated` | author | the date the checklist was written |
 | `tester_level` | author | `novice`, `intermediate` or `expert` — the detail standard the checklist was written to (see `detail-levels.md`). Shown in the form header so the tester knows what they were given |
+| `base_url` | author | what a relative `uat:url` is resolved against, e.g. `http://localhost:3000`. Change this one line to run the same checklist against staging |
 | `commit`, `branch`, `repo` | author | what state of the code the checklist describes |
 | `tester` | **server, on submit** | the name the tester typed |
 | `last_run` | **server, on submit** | timestamp of the last submit |
@@ -180,6 +182,45 @@ A partial submit writes `**Run status:** PARTIAL` and lists the unanswered IDs.
   - ![F1 screenshot 1](assets/UAT-myapp-2026-08-23/F1-1.png)
 <!-- uat:findings:end -->
 ```
+
+## 5a. Linking a test to a screen
+
+A test that is about a specific screen can name it:
+
+```markdown
+### 3.2  Save a new report
+<!-- uat:test id=3.2 -->
+<!-- uat:url /reports -->
+```
+
+The path is resolved against `base_url` from the meta block; an absolute `http://…` URL is used as-is.
+Tests without the marker behave exactly as before.
+
+In the form, such a test grows an **Open this screen and annotate it** button pointing at the helper's
+`/goto?test=3.2`, which records that the tester is on 3.2 and then redirects to the app. Once there,
+the tester clicks the bookmarklet (set up once from the checklist's own instructions), drops numbered
+pins with comments, and sends them back.
+
+What comes back is folded into the test's **existing** answer fields — nothing new appears in the
+answer block:
+
+- the annotated image joins that test's `**Screenshots:**` list, named `<id>-annot-<n>.png`
+- the pins are appended to `**Notes:**`, one per line, with the element each one sits on:
+
+```markdown
+- **Notes:** — Annotated 2026-08-25 19:23 · http://localhost:8899/ · 1536×695
+    ① Clicking Save does nothing at all — no message, nothing saved.  [button#save “Save”]
+    ② This hint text is far too small to read.  [body > main > div.card > p.hint “…”]
+    ! console: TypeError: save is not a function
+    browser: Mozilla/5.0 (Windows NT 10.0; Win64; x64) … Chrome/151.0.0.0
+```
+
+The tester's Pass/Fail/Not done is **never** changed by annotating — marking up a screen is not the
+same as failing the test.
+
+Annotations park on the helper until the checklist tab collects them (`GET /api/annotations?after=`),
+which it does on focus and every ten seconds. They then travel through the ordinary Save/Submit path,
+so nothing about the write-back changes.
 
 ## 6. Sidecar files
 
