@@ -23,9 +23,26 @@ that tests the wrong app.
 
 ---
 
-## Phase 0 — Ask before generating (REQUIRED)
+## Phase 0 — Orient, then ask (REQUIRED)
 
-Use `AskUserQuestion` with concrete options. Skip a question only if the user already answered it.
+**Spend ten minutes reading the repo before you ask anything.** Good questions are downstream of
+discovery. Asked cold, a question about integrations comes out as "do you have any third-party
+integrations?" — which makes the user do your reading for you. Asked after a look at the code, it
+becomes "there is an OAuth router but no `GOOGLE_CLIENT_ID` in `.env.example` — is Google actually
+configured?" Only the second is worth a turn, and only the second uncovers anything.
+
+The questions below are the required minimum, not the whole list: add one whenever the code raises
+something the answer would change — an integration that may not be wired up, a feature that looks
+half-built, a destructive operation you would need permission to test.
+
+Read enough to make the options concrete — no more:
+
+- `README.md` and any `CLAUDE.md` / `AGENTS.md`
+- the task runner (`package.json` scripts, `Makefile`, `pyproject.toml`) and `docker-compose*.yml`
+- the names in `.env.example` — **names only, never values**
+- the feature/route/module directories, to see what actually exists
+
+Then use `AskUserQuestion` with concrete options. Skip a question only if the user already answered it.
 
 1. **Scope** — the whole app from a clean machine, or only part of it? Default and recommended:
    everything, including install and setup.
@@ -81,6 +98,21 @@ tester knows it was excluded on purpose, never into a test that is doomed to fai
 
 Capture **exact** strings: commands, routes, button labels, env var names, file paths. A beginner
 cannot fill in a blank.
+
+### Stop if there is nothing to test
+
+If discovery finds **no runnable surface** — no server, no page, no command, no endpoint; only
+configuration, documentation, or a specification for something not yet written — **stop and say so.**
+Do not generate a checklist.
+
+This matters because the failure is invisible: a UAT written from a README's promises or a
+`CLAUDE.md`'s conventions reads perfectly plausibly, and the tester only discovers it is fiction when
+every test fails. Report what you found instead (a spec, an install of someone else's tool, an empty
+scaffold), name what would have to exist before a UAT is meaningful, and ask whether a different
+repository was intended.
+
+The same applies in the small: a feature that exists only as a mock-up with hardcoded data is not
+built. Either exclude it, or test it honestly — see **Testing a known gap** below.
 
 ---
 
@@ -172,23 +204,63 @@ only the wording changes. An Expert checklist is shorter, not thinner.
    observation, the test is written badly.
 5. **One verifiable claim per test.** Merging three assertions into one checkbox makes a failure
    impossible to triage.
-6. **Order by dependency**: install → configure → start → use → operational/destructive last. State
-   each test's preconditions in **Before you start**.
+6. **Order by dependency, and by side effect.** Sequence install → configure → start → use →
+   operational/destructive, and state each test's preconditions in **Before you start**. Then check
+   the other direction: does any test *sabotage the ones after it*? A rate-limit test that locks
+   sign-in for fifteen minutes, a test that deletes the record a later test reads, a teardown placed
+   mid-checklist — each strands the tester. Move it later, or warn in bold what it will cost them.
 7. **Flag every destructive step** in bold, with what is lost and how to undo it.
 8. **Say what to capture on failure**, pitched at the level: the exact red text for a Novice, the
    failing response and log line for an Expert.
 9. **Keep the tester unblocked**: if one test fails, say whether they can carry on.
 10. **Branch on the unexpected.** "If you do not see X, do Y first." (Essential for Novice, useful at
     every level.)
+11. **Never ask the tester to write down a secret.** The completed checklist gets committed, mailed
+    around and pasted into chat. Ask for the *name* of a key, never its value: "list the variable
+    names in `.env`" rather than "paste your `.env`". When a test needs a credential, tell the tester
+    where to get it and have them confirm it works — never have them record it. Say so explicitly in
+    any test that goes near one, and in the security tests add: if a secret *is* exposed, report which
+    name appeared and nothing more.
 
 Do NOT add "how did this look?" questions to the tests — the form gives every test its own look-and-feel
 comment box with a severity, and lets the tester report anything the checklist never asked about.
+
+### Testing a known gap
+
+Sometimes the honest test is one that **passes by confirming a defect is still there**: a page that is
+a mock-up with fixed data, a feature reachable only by typing a URL, a limitation the team has
+accepted for now. Leaving these out lets the next person mistake the mock-up for a working feature;
+writing them as ordinary tests produces a failure nobody intends to fix.
+
+Write them so the tester cannot misread which way is which:
+
+- **State the gap in the title** — "Tasks are a demo and do not save", not "Test the Tasks page".
+- **Say in the Goal that confirming the limitation is the point**, so a tester does not record Fail
+  out of sympathy for the app.
+- **Make PASS the current behaviour**: "PASS looks like: the tick is gone after a reload — the change
+  was **not** saved, confirming this page is still a demo."
+- **Make FAIL mean the gap has closed**: "If your change survives the reload, tasks now persist and
+  this test needs rewriting. Say so."
+
+Use this only for gaps you have confirmed in the code. A guess dressed up this way is worse than no
+test at all.
 
 ### Coverage requirement
 
 Complete means every surface from Phase 1 has at least one test, including setup and teardown, every
 UI state, every endpoint/command/job, the unhappy paths, and the security checks. Group by surface,
-number `N.M`. **Err on the side of more tests.**
+number `N.M`. **Err on the side of more tests** — but not past the point where the run stops happening.
+
+A checklist nobody finishes is worth less than a shorter one they complete. So:
+
+- **Estimate the run and put it at the top**, in the "what you need" section: roughly a minute per
+  Intermediate test, more for anything with a wait in it. Sixty tests is about an hour; a tester who
+  budgets thirty minutes will abandon it at test 25 and you will get a partial run.
+- **Split by session, not by trimming coverage**, when it runs long: put the setup and the highest-risk
+  features in the first checklist, operational and edge cases in a second. Two files that both get
+  completed beat one that does not.
+- **Never merge tests to shorten the list.** One verifiable claim per test stays true at any length —
+  a merged test cannot be triaged when it fails.
 
 ### Shell gotchas to bake in
 
