@@ -5,6 +5,7 @@ version: 1
 app: Demo App
 generated: 2026-08-23
 tester_level: novice
+base_url: http://localhost:3000
 commit: abc1234
 branch: main
 -->
@@ -60,6 +61,7 @@ Work top to bottom and do not skip a section — later tests assume the earlier 
 
 ### 2.1  Open the home page
 <!-- uat:test id=2.1 -->
+<!-- uat:url / -->
 
 - **Goal (plain words):** Look at the app in your web browser.
 - **Before you start:** Test 1.2 passed and the terminal is still open.
@@ -74,6 +76,7 @@ Work top to bottom and do not skip a section — later tests assume the earlier 
 
 ### 2.2  Sign in with the test account
 <!-- uat:test id=2.2 -->
+<!-- uat:url / -->
 
 - **Goal (plain words):** Get into the app using the practice account.
 - **Before you start:** Test 2.1 passed.

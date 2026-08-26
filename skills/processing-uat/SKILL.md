@@ -41,9 +41,15 @@ Three streams, all of which matter:
 | **Not done** | tests with `**Status:** NOT DONE` | usually blocked by an earlier failure — the note says why. These are untested surfaces, and often hide further bugs |
 | **Look & feel concerns** | any `**Look & feel concern:** (Severity) ...` line, including on tests that **passed** | the app works and the user still does not want to ship it like that |
 | **Tester findings** | the `<!-- uat:findings:start -->` section | problems no test asked about — often the most valuable items in the file |
+| **In-app annotations** | `— Annotated …` lines inside a test's Notes | pins the tester dropped on the running app. Each carries the element it sits on (`button#save “Save”`), the URL, the viewport and any console error at that moment — the most directly actionable evidence in the file |
 
 Read every screenshot the tester attached (`docs/uat/assets/<slug>/…`) with the Read tool. A picture
 frequently contains the error text the tester paraphrased.
+
+Annotated captures (`<id>-annot-<n>.png`) are **re-renders of the page, not photographs** — the tester
+confirmed they looked right, but treat fine pixel detail with suspicion and trust the pin's element
+selector over the picture. That selector is usually the fastest route into the code: search for the id,
+class or text it names before reading anything else.
 
 ## Phase 2 — Diagnose each issue against the code
 

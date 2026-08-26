@@ -19,8 +19,10 @@ import http from 'node:http';
 import path from 'node:path';
 import { spawn } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
-import { parse, generate, ID_RE, UatError } from './generate-uat-html.mjs';
+import { parse, generate, resolveUrl, ID_RE, UatError } from './generate-uat-html.mjs';
 
+const HERE = path.dirname(fileURLToPath(import.meta.url));
+const ASSETS_DIR = path.join(HERE, 'assets');
 const MAX_UPLOAD = 8 * 1024 * 1024;
 const MAX_BODY = 24 * 1024 * 1024;
 const EXT_BY_MIME = {
@@ -44,6 +46,18 @@ class Ctx {
     this.progressPath = path.join(this.dir, `.uat-progress-${this.slug}.json`);
     this.resultsPath = path.join(this.dir, this.slug + '.results.json');
     this.assetsDir = path.join(this.dir, 'assets', this.slug);
+    this.currentTest = '';   // set by /goto, read by the annotator
+    this.annotations = [];   // parked until the checklist tab collects them
+  }
+
+  urlFor(testId) {
+    const lines = this.loadMd();
+    const { meta, sections } = parse(lines);
+    const base = (meta.base_url || '').trim().replace(/\/$/, '');
+    for (const sec of sections) {
+      for (const t of sec.tests) if (t.id === testId) return resolveUrl(t.url, base);
+    }
+    return '';
   }
 
   loadMd() {
@@ -254,14 +268,46 @@ function writeMarkdown(ctx, state, partial) {
 
 /* ------------------------------------------------------------------ server */
 
+// the annotator runs on the app's origin, not ours, so it needs these
+const CORS = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'Content-Type',
+  'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+};
+
 function sendJson(res, obj, code = 200) {
   const body = Buffer.from(JSON.stringify(obj), 'utf8');
   res.writeHead(code, {
     'Content-Type': 'application/json; charset=utf-8',
     'Content-Length': body.length,
     'Cache-Control': 'no-store',
+    ...CORS,
   });
   res.end(body);
+}
+
+function sendHtml(res, markup, code = 200) {
+  const body = Buffer.from(markup, 'utf8');
+  res.writeHead(code, {
+    'Content-Type': 'text/html; charset=utf-8',
+    'Content-Length': body.length,
+    ...CORS,
+  });
+  res.end(body);
+}
+
+function readBody(req) {
+  return new Promise((resolve, reject) => {
+    const chunks = [];
+    let size = 0;
+    req.on('data', (c) => {
+      size += c.length;
+      if (size > MAX_BODY) { reject(new Error('request body too large')); req.destroy(); return; }
+      chunks.push(c);
+    });
+    req.on('end', () => resolve(Buffer.concat(chunks).toString('utf8')));
+    req.on('error', reject);
+  });
 }
 
 function readJson(req) {
@@ -290,26 +336,73 @@ function safePath(ctx, urlPath) {
   return full;
 }
 
-function handleUpload(ctx, payload, res) {
-  const owner = String(payload.owner || '').trim();
-  if (!owner || !ID_RE.test(owner)) return sendJson(res, { error: 'bad owner id' }, 400);
-  const m = /^data:([\w/+.-]+);base64,([\s\S]*)$/.exec(payload.dataUrl || '');
-  if (!m) return sendJson(res, { error: 'that file was not an image' }, 400);
+/** Write a base64 data: URL into the assets folder. Returns {path} or {error}. */
+function saveDataUrl(ctx, owner, dataUrl) {
+  if (!owner || !ID_RE.test(owner)) return { error: 'bad owner id' };
+  const m = /^data:([\w/+.-]+);base64,([\s\S]*)$/.exec(dataUrl || '');
+  if (!m) return { error: 'that file was not an image' };
   const [, mime, b64] = m;
   const ext = EXT_BY_MIME[mime];
-  if (!ext) return sendJson(res, { error: `unsupported image type ${mime}` }, 400);
+  if (!ext) return { error: `unsupported image type ${mime}` };
   let raw;
-  try { raw = Buffer.from(b64, 'base64'); } catch { return sendJson(res, { error: 'the image could not be decoded' }, 400); }
-  if (!raw.length) return sendJson(res, { error: 'the image could not be decoded' }, 400);
-  if (raw.length > MAX_UPLOAD) return sendJson(res, { error: 'that image is larger than 8 MB' }, 400);
+  try { raw = Buffer.from(b64, 'base64'); } catch { return { error: 'the image could not be decoded' }; }
+  if (!raw.length) return { error: 'the image could not be decoded' };
+  if (raw.length > MAX_UPLOAD) return { error: 'that image is larger than 8 MB' };
   fs.mkdirSync(ctx.assetsDir, { recursive: true });
   let n = 1;
   while (fs.existsSync(path.join(ctx.assetsDir, `${owner}-${n}${ext}`))) n++;
   const name = `${owner}-${n}${ext}`;
   fs.writeFileSync(path.join(ctx.assetsDir, name), raw);
   const rel = `assets/${ctx.slug}/${name}`;
-  console.log(`  saved screenshot ${rel} (${Math.round(raw.length / 1024)} KB)`);
-  return sendJson(res, { ok: true, path: rel });
+  console.log(`  saved image ${rel} (${Math.round(raw.length / 1024)} KB)`);
+  return { path: rel };
+}
+
+function handleUpload(ctx, payload, res) {
+  const r = saveDataUrl(ctx, String(payload.owner || '').trim(), payload.dataUrl);
+  if (r.error) return sendJson(res, { error: r.error }, 400);
+  return sendJson(res, { ok: true, path: r.path });
+}
+
+function stamp2() {
+  const d = new Date();
+  const p = (n) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`;
+}
+
+function storeAnnotation(ctx, data) {
+  const test = String(data.test || '').trim();
+  let info;
+  try { ({ info } = ctx.index()); }
+  catch (err) { return { ok: false, error: `the checklist file has a problem: ${err.message}` }; }
+  if (!info[test]) return { ok: false, error: `no test called ${test} in this checklist` };
+  const pins = (data.pins || []).filter((p) => (p.comment || '').trim());
+  if (!pins.length) return { ok: false, error: 'every pin needs a comment' };
+
+  let image = '';
+  if (data.image) {
+    const saved = saveDataUrl(ctx, `${test}-annot`, data.image);
+    if (saved.error) return { ok: false, error: saved.error };
+    image = saved.path;
+  }
+
+  const record = {
+    test,
+    title: info[test].title,
+    pins: pins.map((p) => ({
+      n: p.n, comment: (p.comment || '').trim(), selector: p.selector || '',
+      tag: p.tag || '', text: p.text || '',
+    })),
+    image,
+    url: data.url || '',
+    viewport: data.viewport || '',
+    browser: data.browser || '',
+    consoleErrors: (data.consoleErrors || []).map(String).slice(0, 5),
+    at: stamp2(),
+  };
+  ctx.annotations.push(record);
+  console.log(`  annotation for test ${test}: ${pins.length} pin(s)${image ? ' + image' : ' (no image)'}`);
+  return { ok: true, index: ctx.annotations.length };
 }
 
 function handleSubmit(ctx, payload, res) {
@@ -347,9 +440,66 @@ function handleSubmit(ctx, payload, res) {
 
 function makeServer(ctx) {
   return http.createServer(async (req, res) => {
-    const urlPath = (req.url || '/').split('?')[0];
+    const [urlPath, rawQuery] = (req.url || '/').split('?');
+    const query = new URLSearchParams(rawQuery || '');
     try {
+      if (req.method === 'OPTIONS') {
+        res.writeHead(204, { ...CORS, 'Content-Length': 0 });
+        return res.end();
+      }
       if (req.method === 'GET') {
+        if (urlPath === '/goto') {
+          const test = query.get('test') || '';
+          let sections;
+          try { ({ sections } = ctx.index()); }
+          catch (err) { return sendHtml(res, `<p>The checklist file has a problem: ${err.message}</p>`, 500); }
+          const hit = sections.flatMap((sec) => sec.tests).find((t) => t.id === test);
+          if (!hit) return sendHtml(res, `<p>No test called ${test} in this checklist.</p>`, 404);
+          const target = ctx.urlFor(test);
+          if (!target) {
+            return sendHtml(res,
+              `<p>Test ${test} has no <code>uat:url</code> marker, so there is nothing to open.</p>`, 404);
+          }
+          ctx.currentTest = test;
+          console.log(`  tester is now on test ${test} -> ${target}`);
+          res.writeHead(302, { Location: target, 'Cache-Control': 'no-store' });
+          return res.end();
+        }
+        if (urlPath === '/api/current-test') {
+          let sections = [];
+          try { ({ sections } = ctx.index()); } catch { sections = []; }
+          const listing = sections.flatMap((sec) => sec.tests.map((t) => ({ id: t.id, title: t.title })));
+          const cur = ctx.currentTest;
+          const hit = listing.find((t) => t.id === cur);
+          return sendJson(res, { test: cur, title: hit ? hit.title : '', tests: listing });
+        }
+        if (urlPath === '/api/annotations') {
+          const after = Number(query.get('after') || 0) || 0;
+          return sendJson(res, { items: ctx.annotations.slice(after), cursor: ctx.annotations.length });
+        }
+        if (urlPath === '/annotate.js') {
+          // the bookmarklet carries this inline (so a strict CSP cannot block it);
+          // this route is the same code, for diagnostics and for pages without a CSP
+          const data = fs.readFileSync(path.join(ASSETS_DIR, 'annotate.js'));
+          res.writeHead(200, {
+            'Content-Type': 'application/javascript; charset=utf-8',
+            'Content-Length': data.length, ...CORS,
+          });
+          return res.end(data);
+        }
+        if (urlPath.startsWith('/vendor/')) {
+          const name = path.basename(urlPath);
+          const full = path.join(ASSETS_DIR, 'vendor', name);
+          if (!fs.existsSync(full) || !fs.statSync(full).isFile()) {
+            return sendJson(res, { error: 'not found' }, 404);
+          }
+          const data = fs.readFileSync(full);
+          res.writeHead(200, {
+            'Content-Type': 'application/javascript; charset=utf-8',
+            'Content-Length': data.length, ...CORS,
+          });
+          return res.end(data);
+        }
         if (urlPath === '/api/state') {
           let state = {};
           if (fs.existsSync(ctx.progressPath)) {
@@ -371,9 +521,25 @@ function makeServer(ctx) {
       }
 
       if (req.method === 'POST') {
+        if (urlPath === '/receive') {
+          // CSP fallback: the annotator submits a form into a popup instead of fetching
+          let data;
+          try { data = JSON.parse(new URLSearchParams(await readBody(req)).get('payload') || '{}'); }
+          catch { return sendHtml(res, '<p>That did not arrive in one piece. Please try again.</p>', 400); }
+          const result = storeAnnotation(ctx, data);
+          if (!result.ok) return sendHtml(res, `<p>Could not save: ${result.error}</p>`, 400);
+          return sendHtml(res,
+            '<title>Saved</title><body style="font:16px system-ui;padding:28px;text-align:center">'
+            + `<h2>Saved to test ${data.test}</h2>`
+            + '<p>You can close this window and go back to the checklist.</p>'
+            + '<script>setTimeout(function(){window.close()},1500)</script>');
+        }
+
         let payload;
         try { payload = await readJson(req); }
         catch (err) { return sendJson(res, { error: `bad request: ${err.message}` }, 400); }
+
+        if (urlPath === '/api/annotate') return sendJson(res, storeAnnotation(ctx, payload));
 
         if (urlPath === '/api/save') {
           const state = payload.state || {};

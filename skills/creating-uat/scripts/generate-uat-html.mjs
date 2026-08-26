@@ -21,6 +21,7 @@ export const ID_RE = /^[A-Za-z0-9._-]+$/;
 const META_START = /^<!--\s*uat:meta\s*$/;
 const SECTION_RE = /^<!--\s*uat:section\s+(.*?)-->\s*$/;
 const TEST_RE = /^<!--\s*uat:test\s+(.*?)-->\s*$/;
+const URL_RE = /^<!--\s*uat:url\s+(\S+)\s*-->\s*$/;
 const ANS_START_RE = /^<!--\s*uat:answer:start\s+id=(\S+)\s*-->\s*$/;
 const ANS_END_RE = /^<!--\s*uat:answer:end\s+id=(\S+)\s*-->\s*$/;
 const ATTR_RE = /(\w+)=("([^"]*)"|\S+)/g;
@@ -148,6 +149,16 @@ export function renderMd(lines) {
   return out.join('\n');
 }
 
+const ABSOLUTE_URL = /^[a-zA-Z][\w+.-]*:\/\//;
+
+/** A uat:url may be absolute, or relative to the meta block's base_url. */
+export function resolveUrl(url, base) {
+  url = (url || '').trim();
+  if (!url || ABSOLUTE_URL.test(url)) return url;
+  if (!base) return url;
+  return base + (url.startsWith('/') ? '' : '/') + url;
+}
+
 /* ------------------------------------------------------------------ parse */
 
 function parseAttrs(raw) {
@@ -237,8 +248,16 @@ export function parse(lines) {
       seen.add(tid);
       if (!curSection) throw new UatError(`test ${tid} is not inside any section (add a <!-- uat:section --> marker)`);
       const title = (heading || tid).replace(new RegExp(`^${tid.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s*`), '').trim() || tid;
-      curTest = { id: tid, title, _body_start: i + 1, _marker: i, _answer: null };
+      curTest = { id: tid, title, url: '', _body_start: i + 1, _marker: i, _answer: null };
       curSection.tests.push(curTest);
+      i++;
+      continue;
+    }
+
+    m = URL_RE.exec(s);
+    if (m) {
+      if (!curTest) throw new UatError(`line ${i + 1}: uat:url must sit inside a test`);
+      curTest.url = m[1];
       i++;
       continue;
     }
@@ -283,6 +302,7 @@ function normalise(lines, sections, spans) {
 
 function buildModel(mdPath, lines, meta, sections, spans) {
   const slug = path.basename(mdPath, path.extname(mdPath));
+  const base = (meta.base_url || '').trim().replace(/\/$/, '');
   let title = meta.app || slug;
   let introStart = 0;
   for (let idx = 0; idx < lines.length; idx++) {
@@ -319,6 +339,7 @@ function buildModel(mdPath, lines, meta, sections, spans) {
     outroLines.push(lines[idx]);
   }
 
+  const hasUrls = sections.some((sec) => sec.tests.some((t) => t.url));
   return {
     file: path.basename(mdPath),
     slug,
@@ -328,10 +349,13 @@ function buildModel(mdPath, lines, meta, sections, spans) {
     generated: meta.generated || '',
     intro: renderMd(introLines),
     outro: renderMd(outroLines),
+    annotator: hasUrls ? readAsset('annotate.js') : '',
     sections: sections.map((s) => ({
       id: s.id,
       title: s.title,
-      tests: s.tests.map((t) => ({ id: t.id, title: t.title, body: renderMd(bodyLines(lines, t)) })),
+      tests: s.tests.map((t) => ({
+        id: t.id, title: t.title, url: resolveUrl(t.url, base), body: renderMd(bodyLines(lines, t)),
+      })),
     })),
   };
 }

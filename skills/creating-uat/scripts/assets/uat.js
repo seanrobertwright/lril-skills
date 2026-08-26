@@ -17,7 +17,7 @@
     expert: 'written for a developer or QA engineer'
   };
 
-  var state = { tester: '', answers: {}, findings: [], nextFinding: 1 };
+  var state = { tester: '', answers: {}, findings: [], nextFinding: 1, annotCursor: 0 };
   var online = false, dirty = false, lastOwner = null, filter = 'all';
   var els = {};
   var TESTS = [];
@@ -233,6 +233,16 @@
     card.appendChild(h('h3', {}, [h('span', { class: 'tid', text: t.id }), document.createTextNode(t.title)]));
     card.appendChild(h('div', { class: 'body', html: t.body }));
 
+    if (t.url) {
+      card.appendChild(h('div', { class: 'openrow' }, [
+        h('a', {
+          class: 'openbtn', href: 'goto?test=' + encodeURIComponent(t.id), target: '_blank',
+          rel: 'noopener', text: 'Open this screen and annotate it ↗'
+        }),
+        h('span', { class: 'openurl', text: t.url })
+      ]));
+    }
+
     var answer = h('div', { class: 'answer' });
 
     // status — '' is the starting state and is shown as its own chip, so an
@@ -323,6 +333,78 @@
     var input = card.querySelector('input[type="text"]'); if (input) input.focus();
   }
 
+  /* ------------------------------------------------------------ annotations */
+
+  /* The annotator posts to the helper from the app's own tab; when the tester
+     comes back here we collect whatever arrived and fold it into their answers. */
+
+  function bookmarkletHref() {
+    return 'javascript:(function(){window.__uatHelper='
+      + encodeURIComponent(JSON.stringify(location.origin))
+      + ';' + encodeURIComponent(MODEL.annotator) + '})();void 0;';
+  }
+
+  function annotationNote(a) {
+    var lines = ['— Annotated ' + a.at + (a.url ? ' · ' + a.url : '')
+                 + (a.viewport ? ' · ' + a.viewport : '')];
+    a.pins.forEach(function (p) {
+      var where = p.selector ? '  [' + p.selector + (p.text ? ' “' + p.text + '”' : '') + ']' : '';
+      lines.push('  ' + circled(p.n) + ' ' + p.comment + where);
+    });
+    (a.consoleErrors || []).forEach(function (e) { lines.push('  ! console: ' + e); });
+    if (a.browser) lines.push('  browser: ' + a.browser);
+    return lines.join('\n');
+  }
+
+  function circled(n) {
+    return (n >= 1 && n <= 20) ? String.fromCharCode(0x245F + n) : '(' + n + ')';
+  }
+
+  function mergeAnnotations(items) {
+    if (!items || !items.length) return 0;
+    var touched = {};
+    items.forEach(function (a) {
+      var t = ans(a.test);
+      if (a.image) t.screenshots.push({ path: a.image, name: a.image.split('/').pop() });
+      t.notes = (t.notes ? t.notes.replace(/\s+$/, '') + '\n' : '') + annotationNote(a);
+      touched[a.test] = true;
+      var card = document.getElementById('test-' + a.test);
+      if (card) {
+        var ta = card.querySelector('textarea');
+        if (ta) ta.value = t.notes;
+        var shots = card.querySelector('.shots');
+        if (shots && shots._render) shots._render();
+        card.classList.remove('flash'); void card.offsetWidth; card.classList.add('flash');
+      }
+    });
+    markDirty();
+    refresh();
+    save(true);
+    return Object.keys(touched).length;
+  }
+
+  function collectAnnotations(announce) {
+    if (!online || !MODEL.annotator) return;
+    fetch('api/annotations?after=' + (state.annotCursor || 0), { cache: 'no-store' })
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (j) {
+        if (!j || !j.items || !j.items.length) return;
+        state.annotCursor = j.cursor;
+        var n = mergeAnnotations(j.items);
+        if (announce !== false) {
+          toast(j.items.length + ' annotation' + (j.items.length === 1 ? '' : 's')
+            + ' added to ' + n + ' test' + (n === 1 ? '' : 's') + '.');
+        }
+      })
+      .catch(function () { /* helper went away; the banner already says so */ });
+  }
+
+  function toast(msg) {
+    var t = h('div', { class: 'toast', text: msg });
+    document.body.appendChild(t);
+    setTimeout(function () { t.remove(); }, 6000);
+  }
+
   /* -------------------------------------------------------------------- shell */
 
   function offlineBanner() {
@@ -383,6 +465,8 @@
 
     if (MODEL.intro) els.main.appendChild(h('section', { class: 'panel intro', html: MODEL.intro }));
 
+    if (MODEL.annotator) els.main.appendChild(bookmarkletCard());
+
     var filters = h('div', { class: 'filters' }, [h('span', { class: 'lbl', text: 'Show:' })]);
     [['all', 'Everything'], ['unanswered', 'Still to do'], ['fail', 'Failures'], ['concern', 'With comments']].forEach(function (f) {
       var b = h('button', { class: 'chip', type: 'button', text: f[1], 'aria-pressed': filter === f[0] });
@@ -431,6 +515,33 @@
       els.partial = h('button', { type: 'button', text: 'Submit what I have so far', onclick: function () { submit(true); } }),
       h('button', { class: 'primary', type: 'button', text: 'Submit', onclick: function () { submit(false); } })
     ]));
+  }
+
+  function bookmarkletCard() {
+    var link = h('a', { class: 'bmlet', text: '✎ Annotate this page' });
+    link.href = bookmarkletHref();
+    link.addEventListener('click', function (e) {
+      e.preventDefault();
+      alert('Do not click this button here — drag it up to your bookmarks bar instead.\n\n'
+        + 'Then, when you are looking at the app, click it there to leave notes on the page.');
+    });
+    var box = h('details', { class: 'panel setup' }, [
+      h('summary', { text: 'One-time setup: the “Annotate this page” button' }),
+      h('p', { text: 'Some tests below have an "Open this screen and annotate it" button. To leave '
+        + 'notes directly on the app, you need this button on your bookmarks bar first. You only '
+        + 'ever do this once.' }),
+      h('ol', {}, [
+        h('li', { html: 'Show your bookmarks bar if it is hidden: press <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>B</kbd> '
+          + '(<kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>B</kbd> on a Mac). A thin strip of links appears under the address bar.' }),
+        h('li', {}, [document.createTextNode('Drag this button up onto that strip: '), link]),
+        h('li', { text: 'That is it. When you are on the app and want to leave a note, click the '
+          + 'button on your bookmarks bar and pins appear.' })
+      ]),
+      h('p', { class: 'hint', text: 'It only ever talks to this checklist on your own computer, '
+        + 'and it disappears from the app page as soon as you close it.' })
+    ]);
+    box.open = true;
+    return box;
   }
 
   /* ------------------------------------------------------------------ submit */
@@ -561,6 +672,15 @@
       if (dirty) { e.preventDefault(); e.returnValue = ''; }
     });
     setInterval(function () { if (dirty) save(true); }, 60000);
+
+    if (MODEL.annotator) {
+      window.addEventListener('focus', function () { collectAnnotations(); });
+      document.addEventListener('visibilitychange', function () {
+        if (!document.hidden) collectAnnotations();
+      });
+      setInterval(function () { if (!document.hidden) collectAnnotations(); }, 10000);
+      collectAnnotations(false);
+    }
   }
 
   var local = null;

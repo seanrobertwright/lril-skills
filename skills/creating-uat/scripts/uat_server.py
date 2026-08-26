@@ -21,6 +21,7 @@ import mimetypes
 import os
 import posixpath
 import re
+import urllib.parse
 import socket
 import sys
 import threading
@@ -49,10 +50,23 @@ class Ctx(object):
         self.results_path = os.path.join(self.dir, self.slug + ".results.json")
         self.assets_dir = os.path.join(self.dir, "assets", self.slug)
         self.lock = threading.Lock()
+        self.current_test = ""      # set by /goto, read by the annotator
+        self.annotations = []       # parked until the checklist tab collects them
 
     def load_md(self):
         with open(self.md_path, "r", encoding="utf-8") as fh:
             return fh.read().replace("\r\n", "\n").split("\n")
+
+    def url_for(self, test_id):
+        """The app URL a test's uat:url marker points at, resolved against base_url."""
+        lines = self.load_md()
+        meta, sections, _ = gen.parse(lines, self.md_path)
+        base = meta.get("base_url", "").strip().rstrip("/")
+        for sec in sections:
+            for t in sec["tests"]:
+                if t["id"] == test_id:
+                    return gen.resolve_url(t.get("url", ""), base)
+        return ""
 
     def index(self):
         """{test_id: {title, section}} plus parsed spans, from the current markdown."""
@@ -271,14 +285,36 @@ class Handler(BaseHTTPRequestHandler):
 
     # --- helpers
 
+    def cors(self):
+        """The annotator runs on the app's origin, not ours, so it needs these."""
+        self.send_header("Access-Control-Allow-Origin", "*")
+        self.send_header("Access-Control-Allow-Headers", "Content-Type")
+        self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+
     def send_json(self, obj, code=200):
         body = json.dumps(obj, ensure_ascii=False).encode("utf-8")
         self.send_response(code)
         self.send_header("Content-Type", "application/json; charset=utf-8")
         self.send_header("Content-Length", str(len(body)))
         self.send_header("Cache-Control", "no-store")
+        self.cors()
         self.end_headers()
         self.wfile.write(body)
+
+    def send_html(self, markup, code=200):
+        body = markup.encode("utf-8")
+        self.send_response(code)
+        self.send_header("Content-Type", "text/html; charset=utf-8")
+        self.send_header("Content-Length", str(len(body)))
+        self.cors()
+        self.end_headers()
+        self.wfile.write(body)
+
+    def do_OPTIONS(self):
+        self.send_response(204)
+        self.cors()
+        self.send_header("Content-Length", "0")
+        self.end_headers()
 
     def read_json(self):
         length = int(self.headers.get("Content-Length") or 0)
@@ -300,7 +336,50 @@ class Handler(BaseHTTPRequestHandler):
     # --- routes
 
     def do_GET(self):
-        path = self.path.split("?")[0]
+        parts = self.path.split("?", 1)
+        path = parts[0]
+        query = urllib.parse.parse_qs(parts[1]) if len(parts) > 1 else {}
+
+        if path == "/goto":
+            return self.handle_goto(query)
+        if path == "/api/current-test":
+            try:
+                _, _, sections, _, _ = self.ctx.index()
+            except gen.UatError:
+                sections = []
+            listing = [{"id": t["id"], "title": t["title"]} for s in sections for t in s["tests"]]
+            cur = self.ctx.current_test
+            title = next((t["title"] for t in listing if t["id"] == cur), "")
+            return self.send_json({"test": cur, "title": title, "tests": listing})
+        if path == "/api/annotations":
+            after = int((query.get("after") or ["0"])[0] or 0)
+            items = self.ctx.annotations[after:]
+            return self.send_json({"items": items, "cursor": len(self.ctx.annotations)})
+        if path == "/annotate.js":
+            # the bookmarklet carries this inline (so a strict CSP cannot block it);
+            # this route is the same code, for diagnostics and for pages without a CSP
+            with open(os.path.join(gen.ASSETS, "annotate.js"), "rb") as fh:
+                data = fh.read()
+            self.send_response(200)
+            self.send_header("Content-Type", "application/javascript; charset=utf-8")
+            self.send_header("Content-Length", str(len(data)))
+            self.cors()
+            self.end_headers()
+            return self.wfile.write(data)
+        if path.startswith("/vendor/"):
+            name = posixpath.basename(path)
+            full = os.path.join(gen.ASSETS, "vendor", name)
+            if not os.path.isfile(full) or "/" in name or "\\" in name:
+                return self.send_json({"error": "not found"}, 404)
+            with open(full, "rb") as fh:
+                data = fh.read()
+            self.send_response(200)
+            self.send_header("Content-Type", "application/javascript; charset=utf-8")
+            self.send_header("Content-Length", str(len(data)))
+            self.cors()
+            self.end_headers()
+            return self.wfile.write(data)
+
         if path == "/api/state":
             state = {}
             if os.path.exists(self.ctx.progress_path):
@@ -325,10 +404,32 @@ class Handler(BaseHTTPRequestHandler):
 
     def do_POST(self):
         path = self.path.split("?")[0]
+
+        if path == "/receive":
+            # CSP fallback: the annotator submits a form into a popup instead of fetching
+            length = int(self.headers.get("Content-Length") or 0)
+            raw = self.rfile.read(length).decode("utf-8") if 0 < length <= MAX_BODY else ""
+            fields = urllib.parse.parse_qs(raw)
+            try:
+                data = json.loads((fields.get("payload") or ["{}"])[0])
+            except ValueError:
+                return self.send_html("<p>That did not arrive in one piece. Please try again.</p>", 400)
+            result = self.store_annotation(data)
+            if not result.get("ok"):
+                return self.send_html("<p>Could not save: %s</p>" % result.get("error", "unknown"), 400)
+            return self.send_html(
+                "<title>Saved</title>"
+                "<body style=\"font:16px system-ui;padding:28px;text-align:center\">"
+                "<h2>Saved to test %s</h2><p>You can close this window and go back to the checklist.</p>"
+                "<script>setTimeout(function(){window.close()},1500)</script>" % data.get("test", "?"))
+
         try:
             payload = self.read_json()
         except Exception as exc:
             return self.send_json({"error": "bad request: %s" % exc}, 400)
+
+        if path == "/api/annotate":
+            return self.send_json(self.store_annotation(payload))
 
         if path == "/api/save":
             state = payload.get("state") or {}
@@ -346,23 +447,22 @@ class Handler(BaseHTTPRequestHandler):
 
         return self.send_json({"error": "unknown endpoint"}, 404)
 
-    def handle_upload(self, payload):
-        owner = str(payload.get("owner") or "").strip()
+    def save_data_url(self, owner, data_url):
+        """Write a base64 data: URL into the assets folder. Returns (relative_path, error)."""
         if not owner or not gen.ID_RE.match(owner):
-            return self.send_json({"error": "bad owner id"}, 400)
-        data_url = payload.get("dataUrl") or ""
-        m = re.match(r"^data:([\w/+.-]+);base64,(.*)$", data_url, re.S)
+            return None, "bad owner id"
+        m = re.match(r"^data:([\w/+.-]+);base64,(.*)$", data_url or "", re.S)
         if not m:
-            return self.send_json({"error": "that file was not an image"}, 400)
+            return None, "that file was not an image"
         mime, b64 = m.group(1), m.group(2)
         if mime not in EXT_BY_MIME:
-            return self.send_json({"error": "unsupported image type %s" % mime}, 400)
+            return None, "unsupported image type %s" % mime
         try:
             raw = base64.b64decode(b64, validate=True)
         except (binascii.Error, ValueError):
-            return self.send_json({"error": "the image could not be decoded"}, 400)
+            return None, "the image could not be decoded"
         if len(raw) > MAX_UPLOAD:
-            return self.send_json({"error": "that image is larger than 8 MB"}, 400)
+            return None, "that image is larger than 8 MB"
         os.makedirs(self.ctx.assets_dir, exist_ok=True)
         ext = EXT_BY_MIME[mime]
         n = 1
@@ -372,8 +472,74 @@ class Handler(BaseHTTPRequestHandler):
         with open(os.path.join(self.ctx.assets_dir, name), "wb") as fh:
             fh.write(raw)
         rel = "assets/%s/%s" % (self.ctx.slug, name)
-        print("  saved screenshot %s (%.0f KB)" % (rel, len(raw) / 1024.0))
+        print("  saved image %s (%.0f KB)" % (rel, len(raw) / 1024.0))
+        return rel, None
+
+    def handle_upload(self, payload):
+        rel, err = self.save_data_url(str(payload.get("owner") or "").strip(), payload.get("dataUrl"))
+        if err:
+            return self.send_json({"error": err}, 400)
         return self.send_json({"ok": True, "path": rel})
+
+    def handle_goto(self, query):
+        """Record which test the tester is about to look at, then send them to the app."""
+        test = (query.get("test") or [""])[0]
+        try:
+            _, _, sections, _, _ = self.ctx.index()
+        except gen.UatError as exc:
+            return self.send_html("<p>The checklist file has a problem: %s</p>" % exc, 500)
+        hit = next((t for s in sections for t in s["tests"] if t["id"] == test), None)
+        if not hit:
+            return self.send_html("<p>No test called %s in this checklist.</p>" % test, 404)
+        url = self.ctx.url_for(hit["id"])
+        if not url:
+            return self.send_html(
+                "<p>Test %s has no <code>uat:url</code> marker, so there is nothing to open.</p>" % test, 404)
+        self.ctx.current_test = test
+        print("  tester is now on test %s -> %s" % (test, url))
+        self.send_response(302)
+        self.send_header("Location", url)
+        self.send_header("Cache-Control", "no-store")
+        self.end_headers()
+
+    def store_annotation(self, data):
+        test = str(data.get("test") or "").strip()
+        try:
+            _, _, _, _, info = self.ctx.index()
+        except gen.UatError as exc:
+            return {"ok": False, "error": "the checklist file has a problem: %s" % exc}
+        if test not in info:
+            return {"ok": False, "error": "no test called %s in this checklist" % test}
+        pins = [p for p in (data.get("pins") or []) if (p.get("comment") or "").strip()]
+        if not pins:
+            return {"ok": False, "error": "every pin needs a comment"}
+
+        image = ""
+        raw_image = data.get("image") or ""
+        if raw_image:
+            image, err = self.save_data_url(test + "-annot", raw_image)
+            if err:
+                return {"ok": False, "error": err}
+
+        record = {
+            "test": test,
+            "title": info[test]["title"],
+            "pins": [{"n": p.get("n"), "comment": (p.get("comment") or "").strip(),
+                      "selector": p.get("selector") or "", "tag": p.get("tag") or "",
+                      "text": p.get("text") or ""} for p in pins],
+            "image": image,
+            "url": data.get("url") or "",
+            "viewport": data.get("viewport") or "",
+            "browser": data.get("browser") or "",
+            "consoleErrors": [str(e) for e in (data.get("consoleErrors") or [])][:5],
+            "at": datetime.datetime.now().strftime("%Y-%m-%d %H:%M"),
+        }
+        with self.ctx.lock:
+            self.ctx.annotations.append(record)
+            index = len(self.ctx.annotations)
+        print("  annotation for test %s: %d pin(s)%s"
+              % (test, len(pins), " + image" if image else " (no image)"))
+        return {"ok": True, "index": index}
 
     def handle_submit(self, payload):
         state = payload.get("state") or {}
