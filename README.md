@@ -4,7 +4,7 @@
 
 <p align="center">
   <img src="https://img.shields.io/badge/version-1.0.0-blue?style=flat-square" alt="Version">
-  <img src="https://img.shields.io/badge/skills-34-blueviolet?style=flat-square" alt="Skills">
+  <img src="https://img.shields.io/badge/skills-35-blueviolet?style=flat-square" alt="Skills">
   <img src="https://img.shields.io/badge/license-MIT-green?style=flat-square" alt="License">
   <img src="https://img.shields.io/badge/node-%3E%3D18-brightgreen?style=flat-square" alt="Node">
   <img src="https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey?style=flat-square" alt="Platform">
@@ -33,13 +33,13 @@ That's it. An interactive installer walks you through selecting skills and choos
 
 ## Skills at a glance
 
-**34 skills** — 9 authored here, 25 mirrored from other authors.
+**35 skills** — 10 authored here, 25 mirrored from other authors.
 
 | | |
 |---|---|
 | **Testing & QA** | [`agent-browser`](#agent-browser--browser-automation) · [`e2e-test`](#e2e-test--end-to-end-testing) · [`creating-uat`](#creating-uat--user-acceptance-testing) · [`processing-uat`](#processing-uat--turn-uat-results-into-a-fix-plan) · `tdd` · `diagnosing-bugs` |
 | **Planning & design** | [`intent-engine`](#intent-engine--structured-intent-planning) · `codebase-design` · `domain-modeling` · `grilling` · `prototype` · `to-prd` · `to-issues` |
-| **Workflow** | [`lril`](#lril--second-brain-workflow-commands) · `implement` · `triage` · `handoff` · `resolving-merge-conflicts` |
+| **Workflow** | [`lril`](#lril--second-brain-workflow-commands) · [`ask-sean`](#ask-sean--which-skill-and-whats-next) · `implement` · `triage` · `handoff` · `resolving-merge-conflicts` |
 | **Environment** | [`port-authhority`](#port-authhority--docker-port-conflict-manager) · [`context-diet`](#context-diet--shrink-what-loads-every-session) · `setup-pre-commit` · `git-guardrails-claude-code` |
 | **Communication** | [`excalidraw-diagram`](#excalidraw-diagram--visual-diagramming) · `edit-article` · `teach` · `obsidian-vault` |
 
@@ -160,6 +160,20 @@ python skills/context-diet/scripts/verify.py   --root .   # nothing lost, every 
 It reports in **eager tokens removed**, not lines deleted — a shorter file that still loads the same content has saved nothing, which is why it never emits `@path` imports. Safety-critical rules stay in root `CLAUDE.md` however situational they are, because only root `CLAUDE.md` is re-injected after `/compact`. Nothing is written without your approval of the plan, and `apply.py` refuses to run against files that changed since they were measured rather than cutting at stale offsets.
 
 **Use it when:** startup context is too full, your `CLAUDE.md` has grown past what anyone reads, or instructions are being ignored because they compete with hundreds of lines of situational detail.
+
+---
+
+### `ask-sean` — Which skill, and what's next
+
+The `ask-matt` router, taken from a newer upstream revision than the copy mirrored here (so it routes through `to-spec`, `to-tickets`, `wayfinder` and `research`, which this repo does not ship yet), with one addition: ask it what to work on next and it reads the project's actual state (branch, unpushed work, open PRs, open and blocked tickets, the progress record), recommends one step, and hands back a prompt to paste into a fresh session. The prompt is the only fenced block in the reply, so it shows in a different color from the prose and copies cleanly.
+
+```
+/ask-sean what's next?
+```
+
+**Use it when:** you've finished a ticket and want the next one queued up as a ready-to-paste prompt, or you're unsure which skill fits the situation.
+
+Adapted from [`ask-matt`](https://github.com/mattpocock/skills) by Matt Pocock (MIT); the upstream license is kept in `skills/ask-sean/LICENSE`.
 
 ---
 
