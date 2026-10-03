@@ -1,6 +1,6 @@
 ---
 name: ask-sean
-description: Ask which skill or flow fits your situation, or what to work on next. A router over the Matt Pocock engineering skills; on a "what's next" question it inspects the project's state and hands back one ready-to-paste prompt in a fenced block, set apart from the rest of the reply.
+description: Ask which skill or flow fits your situation, or what to work on next. A router over the Matt Pocock engineering skills; on a "what's next" question it inspects the project's state and hands back one ready-to-paste prompt in an untagged fenced block, the only colored text in the reply.
 disable-model-invocation: true
 ---
 
@@ -20,7 +20,20 @@ When the user asks what to do next ("what's next?", "what should I work on?", "w
    - point at reference material by name (a commit, a sibling implementation, a spec section) instead of restating it;
    - copy the acceptance criteria from the ticket;
    - list the commands that verify the work, and end with how to finish: commit message reference, push, PR.
-4. **Set the prompt apart.** Put the prompt, and only the prompt, inside a fenced code block tagged `text`. Claude Code renders a fenced block in a different color from the prose around it, and the block copies cleanly. Use no other fenced block in the reply, so the prompt is the one colored element. Nothing goes inside the block except text to paste: no commentary, no surrounding quotes.
+4. **Set the prompt apart so it is easy to copy.** Write `Prompt =` on a line of its own, then the prompt inside a fenced code block with **no language tag**: the opening fence is three backticks and nothing after them. Claude Code draws every line of an untagged fenced block in its accent color, so the prompt reads as a different color from everything else and copies cleanly. The format is:
+
+   ~~~~
+   Prompt =
+   ```
+   /implement GitHub issue #52 ...
+   ...
+   ```
+   ~~~~
+
+   - **Never tag the block.** A tagged block (`text`, `markdown`, `bash`, ...) goes through the syntax highlighter instead, and `text` comes out uncolored. That is the mistake to avoid.
+   - **Keep the prompt the only colored text.** Use no other fenced block, and no inline code spans anywhere else in the reply: inline code is drawn in the same accent color and would blur which text is the prompt. Write file names, commands and identifiers in the prose as plain text or bold.
+   - **Put nothing in the block but the text to paste.** No commentary, no `Prompt =` label, no surrounding quotes. The block is pasted as-is, and a prompt that opens with a slash command only invokes that skill when the command is the first thing in the message.
+   - The accent color comes from the user's Claude Code theme (blue or lavender in the stock themes). Markdown cannot pick another color: yellow, for example, is only drawn for function names inside highlighted code.
 
 If the step is something you can do now in the current session (push a branch, open or merge a PR), say so and offer to do it, instead of writing a prompt for it.
 

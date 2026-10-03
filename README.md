@@ -165,7 +165,7 @@ It reports in **eager tokens removed**, not lines deleted — a shorter file tha
 
 ### `ask-sean` — Which skill, and what's next
 
-The `ask-matt` router, taken from a newer upstream revision than the copy mirrored here (so it routes through `to-spec`, `to-tickets`, `wayfinder` and `research`, which this repo does not ship yet), with one addition: ask it what to work on next and it reads the project's actual state (branch, unpushed work, open PRs, open and blocked tickets, the progress record), recommends one step, and hands back a prompt to paste into a fresh session. The prompt is the only fenced block in the reply, so it shows in a different color from the prose and copies cleanly.
+The `ask-matt` router, taken from a newer upstream revision than the copy mirrored here (so it routes through `to-spec`, `to-tickets`, `wayfinder` and `research`, which this repo does not ship yet), with one addition: ask it what to work on next and it reads the project's actual state (branch, unpushed work, open PRs, open and blocked tickets, the progress record), recommends one step, and hands back a prompt to paste into a fresh session. The prompt sits under a `Prompt =` label in a fenced block with no language tag, which Claude Code draws in its accent color; it is the only colored text in the reply, so it is plain what to copy.
 
 ```
 /ask-sean what's next?
