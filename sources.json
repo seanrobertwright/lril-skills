@@ -8,6 +8,22 @@
       "skillsDir": "skills",
       "exclude": ["deprecated", "in-progress"],
       "license": "MIT"
+    },
+    {
+      "name": "kaankiziltug/logo-design-skill",
+      "repo": "https://github.com/kaankiziltug/logo-design-skill.git",
+      "branch": "main",
+      "skillsDir": "skills",
+      "exclude": [],
+      "license": "MIT"
+    },
+    {
+      "name": "reladraw/reladraw",
+      "repo": "https://github.com/reladraw/reladraw.git",
+      "branch": "main",
+      "skillsDir": ".claude/skills",
+      "exclude": [],
+      "license": "Apache-2.0"
     }
   ]
 }

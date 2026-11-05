@@ -18,6 +18,9 @@
     "lril"
   ],
   "license": "MIT",
+  "scripts": {
+    "test": "node --test skills/how-its-made/scripts/render-report.test.mjs"
+  },
   "engines": {
     "node": ">=18.0.0"
   }

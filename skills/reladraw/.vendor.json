@@ -1,0 +1,9 @@
+{
+  "source": "reladraw/reladraw",
+  "repo": "https://github.com/reladraw/reladraw.git",
+  "branch": "main",
+  "path": ".claude/skills/reladraw",
+  "commit": "fa6e179afeab31c7986e0fcd5b72d0eae1c0aa1c",
+  "license": "Apache-2.0",
+  "syncedAt": null
+}

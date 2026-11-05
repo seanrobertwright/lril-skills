@@ -2,7 +2,8 @@
 
 These skills are mirrored from upstream repos by `scripts/sync-skills.js`
 (configured in `sources.json`). Do not edit them by hand — changes are
-overwritten on the next sync. Each retains its upstream `LICENSE`.
+overwritten on the next sync. Each retains its upstream `LICENSE`
+(and `NOTICE`, when upstream has one).
 
 | Skill | Source | Commit | License |
 |-------|--------|--------|---------|
@@ -18,9 +19,11 @@ overwritten on the next sync. Each retains its upstream `LICENSE`.
 | `handoff` | [mattpocock/skills](https://github.com/mattpocock/skills) | `6eeb81b5` | MIT |
 | `implement` | [mattpocock/skills](https://github.com/mattpocock/skills) | `6eeb81b5` | MIT |
 | `improve-codebase-architecture` | [mattpocock/skills](https://github.com/mattpocock/skills) | `6eeb81b5` | MIT |
+| `logo-design` | [kaankiziltug/logo-design-skill](https://github.com/kaankiziltug/logo-design-skill) | `0ecf52e9` | MIT |
 | `migrate-to-shoehorn` | [mattpocock/skills](https://github.com/mattpocock/skills) | `6eeb81b5` | MIT |
 | `obsidian-vault` | [mattpocock/skills](https://github.com/mattpocock/skills) | `6eeb81b5` | MIT |
 | `prototype` | [mattpocock/skills](https://github.com/mattpocock/skills) | `6eeb81b5` | MIT |
+| `reladraw` | [reladraw/reladraw](https://github.com/reladraw/reladraw) | `fa6e179a` | Apache-2.0 |
 | `resolving-merge-conflicts` | [mattpocock/skills](https://github.com/mattpocock/skills) | `6eeb81b5` | MIT |
 | `scaffold-exercises` | [mattpocock/skills](https://github.com/mattpocock/skills) | `6eeb81b5` | MIT |
 | `setup-matt-pocock-skills` | [mattpocock/skills](https://github.com/mattpocock/skills) | `6eeb81b5` | MIT |
