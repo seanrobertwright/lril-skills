@@ -7,7 +7,8 @@
  * Reads sources.json, shallow-clones each upstream repo, finds every folder
  * containing a SKILL.md, and flattens it into skills/<name>/ so the existing
  * installer (lib/discovery.js) discovers it with no changes. The upstream
- * LICENSE is copied alongside each vendored skill and provenance is recorded
+ * LICENSE (and NOTICE, when upstream has one) is copied alongside each
+ * vendored skill and provenance is recorded
  * in a .vendor.json marker plus a top-level VENDORED.md manifest.
  *
  * Safety rules:
@@ -92,6 +93,12 @@ function findLicense(repoRoot) {
   return entries.find((f) => /^licen[cs]e(\.|$)/i.test(f) || /^copying(\.|$)/i.test(f)) || null;
 }
 
+/** Find a NOTICE file at a repo root. Apache-2.0 §4(d) requires redistributing it. */
+function findNotice(repoRoot) {
+  const entries = fs.readdirSync(repoRoot);
+  return entries.find((f) => /^notice(\.|$)/i.test(f)) || null;
+}
+
 function readMarker(dir) {
   const p = path.join(dir, MARKER);
   if (!fs.existsSync(p)) return null;
@@ -137,6 +144,7 @@ function main() {
         log(`  ⚠ no LICENSE found in ${src.name} — skipping source (cannot redistribute safely)`);
         continue;
       }
+      const noticeFile = findNotice(tmp);
 
       const base = path.join(tmp, src.skillsDir || 'skills');
       const skillDirs = findSkillDirs(base, src.exclude || []);
@@ -175,6 +183,7 @@ function main() {
           fs.rmSync(dest, { recursive: true, force: true });
           fs.cpSync(skillDir, dest, { recursive: true });
           fs.copyFileSync(path.join(tmp, licenseFile), path.join(dest, 'LICENSE'));
+          if (noticeFile) fs.copyFileSync(path.join(tmp, noticeFile), path.join(dest, 'NOTICE'));
           fs.writeFileSync(path.join(dest, MARKER), JSON.stringify(marker, null, 2) + '\n');
         }
         vendored.push({ name, ...marker });
@@ -215,7 +224,8 @@ function writeManifest(vendoredThisRun) {
     '',
     'These skills are mirrored from upstream repos by `scripts/sync-skills.js`',
     '(configured in `sources.json`). Do not edit them by hand — changes are',
-    'overwritten on the next sync. Each retains its upstream `LICENSE`.',
+    'overwritten on the next sync. Each retains its upstream `LICENSE`',
+    '(and `NOTICE`, when upstream has one).',
     '',
     '| Skill | Source | Commit | License |',
     '|-------|--------|--------|---------|',

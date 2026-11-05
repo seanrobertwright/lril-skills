@@ -4,7 +4,7 @@
 
 <p align="center">
   <img src="https://img.shields.io/badge/version-1.0.0-blue?style=flat-square" alt="Version">
-  <img src="https://img.shields.io/badge/skills-35-blueviolet?style=flat-square" alt="Skills">
+  <img src="https://img.shields.io/badge/skills-37-blueviolet?style=flat-square" alt="Skills">
   <img src="https://img.shields.io/badge/license-MIT-green?style=flat-square" alt="License">
   <img src="https://img.shields.io/badge/node-%3E%3D18-brightgreen?style=flat-square" alt="Node">
   <img src="https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey?style=flat-square" alt="Platform">
@@ -14,7 +14,7 @@
   <strong>Production-grade skills for Claude Code that handle the work you shouldn't have to think about.</strong>
   <br>
   Browser automation, end-to-end testing, acceptance testing, visual diagramming, intent planning, and
-  Docker port management — plus 25 mirrored engineering skills. Installed in seconds.
+  Docker port management — plus 27 mirrored skills, from engineering to diagrams and logo design. Installed in seconds.
 </p>
 
 ---
@@ -33,15 +33,15 @@ That's it. An interactive installer walks you through selecting skills and choos
 
 ## Skills at a glance
 
-**35 skills** — 10 authored here, 25 mirrored from other authors.
+**38 skills** — 11 authored here, 27 mirrored from other authors.
 
 | | |
 |---|---|
 | **Testing & QA** | [`agent-browser`](#agent-browser--browser-automation) · [`e2e-test`](#e2e-test--end-to-end-testing) · [`creating-uat`](#creating-uat--user-acceptance-testing) · [`processing-uat`](#processing-uat--turn-uat-results-into-a-fix-plan) · `tdd` · `diagnosing-bugs` |
-| **Planning & design** | [`intent-engine`](#intent-engine--structured-intent-planning) · `codebase-design` · `domain-modeling` · `grilling` · `prototype` · `to-prd` · `to-issues` |
+| **Planning & design** | [`intent-engine`](#intent-engine--structured-intent-planning) · [`how-its-made`](#how-its-made--how-a-repo-was-built) · `codebase-design` · `domain-modeling` · `grilling` · `prototype` · `to-prd` · `to-issues` |
 | **Workflow** | [`lril`](#lril--second-brain-workflow-commands) · [`ask-sean`](#ask-sean--which-skill-and-whats-next) · `implement` · `triage` · `handoff` · `resolving-merge-conflicts` |
 | **Environment** | [`port-authhority`](#port-authhority--docker-port-conflict-manager) · [`context-diet`](#context-diet--shrink-what-loads-every-session) · `setup-pre-commit` · `git-guardrails-claude-code` |
-| **Communication** | [`excalidraw-diagram`](#excalidraw-diagram--visual-diagramming) · `edit-article` · `teach` · `obsidian-vault` |
+| **Communication** | [`excalidraw-diagram`](#excalidraw-diagram--visual-diagramming) · `edit-article` · `teach` · `obsidian-vault` · `reladraw` · `logo-design` |
 
 ---
 
@@ -177,6 +177,26 @@ Adapted from [`ask-matt`](https://github.com/mattpocock/skills) by Matt Pocock (
 
 ---
 
+### `how-its-made` — How a repo was built
+
+Give it a GitHub repo and it works out how the thing was built: spec-driven or test-driven, SpecKit or OpenSpec or BMAD, which agents, skills, and MCPs. It reads the commit history, the file tree, and a sample of pull requests, then produces three files from one JSON source:
+
+1. **A Markdown report** with the story of how the process evolved, a classification for each era of the repo, the practices worth copying and what each costs to adopt, and the blind spots.
+2. **An HTML page** of the same report, with an **animated SVG diagram** of the current development workflow. It works offline, and it stops animating for readers who prefer reduced motion.
+3. **The JSON** both are rendered from, so the two can never disagree.
+
+```
+How was https://github.com/acme/widget built?
+```
+
+Every finding is labelled by what it has earned: **Present** (the file exists), **Used** (the history shows it exercised), or **Enforced** (CI or a hook requires it). A leftover `.specify/` folder never reads as adoption, and test files alone never read as TDD. Indirect signs of AI use stay in a separate hedged section and never feed the classification.
+
+The target repo is treated as hostile, because its agent files are written to instruct agents. It is cloned with nothing checked out, nothing from it is run, and the clone is deleted at the end. The report closes with a section mapping each practice to the skills you already have, kept separate so the rest stays shareable.
+
+**Use it when:** you want to learn from how someone else builds, or to see which of their practices you are missing.
+
+---
+
 ## Mirrored from other authors
 
 Installed from this repo alongside the skills above, but authored elsewhere and mirrored verbatim.
@@ -227,6 +247,13 @@ Provenance, pinned commit, and license for each are in [`VENDORED.md`](VENDORED.
 | `teach` | Teach you a new skill or concept, inside the workspace you're working in |
 | `writing-great-skills` | The vocabulary and principles that make a skill predictable — reference for writing skills |
 
+**Visual design**
+
+| Skill | What it does |
+|---|---|
+| `reladraw` | Architecture and data-flow diagrams in a text language where you state the arrangement (`right of api`, `level with queue`), so Claude can read the layout back from the source; renders to standalone SVG |
+| `logo-design` | Logos and brand marks from brief to production SVGs: concepts, 16 px and one-colour tests, client presentation boards, favicon and app-icon exports, and a searchable library of 1,400+ real-world logos for reference |
+
 ## Installation Options
 
 ### Global (available in all projects)
@@ -266,19 +293,23 @@ In addition to the skills authored here, this repo **mirrors curated skills from
 
 How it works:
 
-- **`sources.json`** declares which upstream repos to mirror. Only repos with a redistribution-permitting license (MIT, Apache-2.0, etc.) are included — each vendored skill keeps its upstream `LICENSE` file and a `.vendor.json` provenance marker.
+- **`sources.json`** declares which upstream repos to mirror. Only repos with a redistribution-permitting license (MIT, Apache-2.0, etc.) are included — each vendored skill keeps its upstream `LICENSE` file (and `NOTICE`, when upstream has one) and a `.vendor.json` provenance marker.
 - **`scripts/sync-skills.js`** clones each source, flattens every skill into `skills/<name>/`, and regenerates `VENDORED.md`. Skills authored in this repo are never overwritten.
 - **`.github/workflows/sync-skills.yml`** runs the sync on a daily schedule (and on demand) and opens a PR whenever an upstream changes — so updates flow in automatically, with review before they ship.
 
 > Vendored skills are mirrored verbatim and are **not** edited here. Report issues with a vendored skill to its upstream repo (linked in `VENDORED.md`); fixes flow back on the next sync.
 
-**Currently mirrored:** [`mattpocock/skills`](https://github.com/mattpocock/skills) (MIT) — 25 of Matt Pocock's engineering, productivity, and writing skills (TDD, triage, domain modeling, and more).
+**Currently mirrored:**
+
+- [`mattpocock/skills`](https://github.com/mattpocock/skills) (MIT) — 25 of Matt Pocock's engineering, productivity, and writing skills (TDD, triage, domain modeling, and more).
+- [`kaankiziltug/logo-design-skill`](https://github.com/kaankiziltug/logo-design-skill) (MIT) — `logo-design`, a logo and brand-mark design skill.
+- [`reladraw/reladraw`](https://github.com/reladraw/reladraw) (Apache-2.0) — `reladraw`, the skill that ships with the reladraw diagram language.
 
 ## Requirements
 
 - **Node.js** >= 18
 - **Claude Code** (any recent version)
-- Individual skills may have their own dependencies (documented in each skill's instructions). Notably, `creating-uat` ships its helper for both **Python 3.8+** and **Node 18+**, and needs neither `pip install` nor `npm install`.
+- Individual skills may have their own dependencies (documented in each skill's instructions). Notably, `how-its-made` needs `git` and **Node 18+**, and uses an authenticated `gh` for pull request evidence when it is available. `creating-uat` ships its helper for both **Python 3.8+** and **Node 18+**, and needs neither `pip install` nor `npm install`. `logo-design` runs dependency-free **Python 3** scripts; turning SVGs into PNGs needs one renderer on the machine (cairosvg, rsvg-convert, Inkscape, or headless Chrome/Chromium). `reladraw` needs the `reladraw` CLI (`npm install -g reladraw`, or `npx reladraw` without installing).
 
 ## Contributing
 
