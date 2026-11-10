@@ -4,7 +4,7 @@
 
 <p align="center">
   <img src="https://img.shields.io/badge/version-1.0.0-blue?style=flat-square" alt="Version">
-  <img src="https://img.shields.io/badge/skills-38-blueviolet?style=flat-square" alt="Skills">
+  <img src="https://img.shields.io/badge/skills-39-blueviolet?style=flat-square" alt="Skills">
   <img src="https://img.shields.io/badge/license-MIT-green?style=flat-square" alt="License">
   <img src="https://img.shields.io/badge/node-%3E%3D18-brightgreen?style=flat-square" alt="Node">
   <img src="https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey?style=flat-square" alt="Platform">
@@ -33,11 +33,11 @@ That's it. An interactive installer walks you through selecting skills and choos
 
 ## Skills at a glance
 
-**38 skills** — 11 authored here, 27 mirrored from other authors.
+**39 skills** — 12 authored here, 27 mirrored from other authors.
 
 | | |
 |---|---|
-| **Testing & QA** | [`agent-browser`](#agent-browser--browser-automation) · [`e2e-test`](#e2e-test--end-to-end-testing) · [`creating-uat`](#creating-uat--user-acceptance-testing) · [`processing-uat`](#processing-uat--turn-uat-results-into-a-fix-plan) · `tdd` · `diagnosing-bugs` |
+| **Testing & QA** | [`agent-browser`](#agent-browser--browser-automation) · [`e2e-test`](#e2e-test--end-to-end-testing) · [`creating-uat`](#creating-uat--user-acceptance-testing) · [`processing-uat`](#processing-uat--turn-uat-results-into-a-fix-plan) · [`test-sweet`](#test-sweet--only-the-tests-each-build-step-needs) · `tdd` · `diagnosing-bugs` |
 | **Planning & design** | [`intent-engine`](#intent-engine--structured-intent-planning) · [`how-its-made`](#how-its-made--how-a-repo-was-built) · `codebase-design` · `domain-modeling` · `grilling` · `prototype` · `to-prd` · `to-issues` |
 | **Workflow** | [`lril`](#lril--second-brain-workflow-commands) · [`ask-sean`](#ask-sean--which-skill-and-whats-next) · `implement` · `triage` · `handoff` · `resolving-merge-conflicts` |
 | **Environment** | [`port-authhority`](#port-authhority--docker-port-conflict-manager) · [`context-diet`](#context-diet--shrink-what-loads-every-session) · `setup-pre-commit` · `git-guardrails-claude-code` |
@@ -194,6 +194,23 @@ Every finding is labelled by what it has earned: **Present** (the file exists), 
 The target repo is treated as hostile, because its agent files are written to instruct agents. It is cloned with nothing checked out, nothing from it is run, and the clone is deleted at the end. The report closes with a section mapping each practice to the skills you already have, kept separate so the rest stays shareable.
 
 **Use it when:** you want to learn from how someone else builds, or to see which of their practices you are missing.
+
+---
+
+### `test-sweet` — Only the tests each build step needs
+
+Point it at a plan, spec, PRD, set of GitHub issues, or tickets folder. It writes a test plan that gives every build step only the tests it needs, then writes a step's tests first when you build that step.
+
+Every test carries a **warrant**: a promise the source makes for that step, or a serious risk (lost data, money, security and login, privacy, anything that cannot be undone, plus whatever you name as worst-if-broke). A candidate with no warrant is cut, and the plan records each cut with its reason. A promise only a person can check, such as a manual checklist run, is listed as a by-hand check. A step that promises nothing testable is recorded as "no tests needed".
+
+```
+/test-sweet docs/plan.md
+/test-sweet step 2
+```
+
+The plan is saved to `test-sweet/` in your project and waits for your approval before any test is written. Each test gets the cheapest level that would catch the bug: unit, integration, or end-to-end. Building a step hands its test list to the `tdd` skill when that is installed, and runs its own red-green loop when it is not. It works on any language and reads the project to find the test runner already in use.
+
+**Use it when:** you have a build plan and want a test suite that covers what matters and nothing else. A source with no build steps is sent to a planning skill first.
 
 ---
 
