@@ -394,13 +394,25 @@ function sameFile(a, b) {
   }
 }
 
-/** Keep a checklist: copy its JSON into the store and write its page there. */
-export function store(jsonPath, dir = storeDir()) {
+/**
+ * Keep a checklist: copy its JSON into the store and write its page there.
+ * A file from outside the store may not take the name of an open checklist
+ * unless `replace` is set; building the kept copy itself is always allowed.
+ */
+export function store(jsonPath, dir = storeDir(), { replace = false } = {}) {
   const checklist = readChecklist(jsonPath);
   const slug = slugOf(jsonPath);
   fs.mkdirSync(dir, { recursive: true });
   const json = path.join(dir, `${slug}.json`);
-  if (!sameFile(jsonPath, json)) fs.copyFileSync(jsonPath, json);
+  if (!sameFile(jsonPath, json)) {
+    if (!replace && fs.existsSync(json)) {
+      throw new ChecklistError(
+        `an open checklist called "${slug}" already exists. To change it, edit ${json} and build that file. `
+        + 'To make a separate checklist, give this file a different name. To throw the old one away, add --replace.',
+      );
+    }
+    fs.copyFileSync(jsonPath, json);
+  }
   const out = path.join(dir, `${slug}.html`);
   fs.writeFileSync(out, renderHtml(checklist, slug), 'utf8');
   return { slug, out, json, steps: checklist.steps.length };
@@ -425,7 +437,9 @@ export function listOpen(dir = storeDir()) {
     try {
       const checklist = readChecklist(json);
       item.title = checklist.title;
+      item.summary = checklist.summary;
       item.source = checklist.source;
+      item.sourceUrl = checklist.sourceUrl;
       item.steps = checklist.steps.length;
     } catch (err) {
       if (!(err instanceof ChecklistError)) throw err;
@@ -478,13 +492,14 @@ function openInBrowser(file) {
 
 const USAGE = `usage:
   node build-checklist.mjs <checklist.json> [--no-open] [-q]   keep the checklist and open its page
+  node build-checklist.mjs <checklist.json> --replace          the same, replacing an open checklist of that name
   node build-checklist.mjs <checklist.json> -o <out.html>      write the page there instead, keeping nothing
   node build-checklist.mjs --list                              print the open checklists as JSON
   node build-checklist.mjs --open <slug> [--no-open]           reopen an open checklist
   node build-checklist.mjs --done <slug>                       mark a checklist finished`;
 
 const VALUE_FLAGS = { '-o': 'out', '--out': 'out', '--open': 'open', '--done': 'done' };
-const SWITCHES = { '-q': 'quiet', '--quiet': 'quiet', '--no-open': 'noOpen', '--list': 'list', '-h': 'help', '--help': 'help' };
+const SWITCHES = { '-q': 'quiet', '--quiet': 'quiet', '--no-open': 'noOpen', '--list': 'list', '--replace': 'replace', '-h': 'help', '--help': 'help' };
 
 export function parseArgs(args) {
   const opts = { inputs: [] };
@@ -527,7 +542,7 @@ async function main(argv) {
       return 0;
     }
     if (opts.open) { await show(reopen(opts.open), opts); return 0; }
-    await show(opts.out ? build(opts.inputs[0], opts.out) : store(opts.inputs[0]), opts);
+    await show(opts.out ? build(opts.inputs[0], opts.out) : store(opts.inputs[0], storeDir(), { replace: Boolean(opts.replace) }), opts);
     return 0;
   } catch (err) {
     if (err instanceof ChecklistError) { console.error(`Checklist problem: ${err.message}\n${USAGE}`); return 2; }
