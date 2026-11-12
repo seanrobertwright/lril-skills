@@ -124,7 +124,8 @@ export function validateChecklist(raw) {
         throw new ChecklistError(`${where} paste.text is longer than ${MAX_TEXT} characters`);
       }
       step.paste = {
-        // kept exactly as written: this is what lands on the clipboard
+        // this is what lands on the clipboard: never formatted, only tidied at the ends
+        // (CRLF becomes LF, leading blank lines and trailing whitespace are dropped)
         text: item.paste.text.replace(/\r\n/g, '\n').replace(/^\n+|\s+$/g, ''),
         into: text(item.paste.into, `${where} paste.into`, { required: true, max: 120 }),
       };

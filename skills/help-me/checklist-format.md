@@ -37,7 +37,9 @@ Text fields understand three things and nothing else:
 - `**bold**` for the name of a button, key or menu item
 - `[words](https://example.com)` for a web link
 
-A blank line starts a new paragraph. `paste.text` is never formatted: it is copied exactly as written.
+A blank line starts a new paragraph. `paste.text` is never formatted. It is copied as written, apart from tidying at the ends: leading
+blank lines and trailing spaces and newlines are dropped, and Windows line endings become plain ones.
+Indentation at the start of the first line is kept.
 
 ## Rules the script enforces
 

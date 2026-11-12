@@ -95,13 +95,15 @@ describe('validateChecklist', () => {
     assert.equal(validateChecklist(sample({ sourceUrl: 'https://example.com/i/1' })).sourceUrl, 'https://example.com/i/1');
   });
 
-  it('checks the paste block and keeps its text as written', () => {
+  it('checks the paste block and only tidies the ends of its text', () => {
     const base = { title: 'A', do: 'x', why: 'y' };
     problem(sample({ steps: [{ ...base, paste: 'npm test' }] }), /paste must be an object/);
     problem(sample({ steps: [{ ...base, paste: { text: ' ', into: 'the terminal' } }] }), /paste\.text is missing/);
     problem(sample({ steps: [{ ...base, paste: { text: 'npm test' } }] }), /paste\.into is missing/);
     const ok = validateChecklist(sample({ steps: [{ ...base, paste: { text: '  npm test\r\n', into: 'the terminal' } }] }));
     assert.equal(ok.steps[0].paste.text, '  npm test');
+    const lines = validateChecklist(sample({ steps: [{ ...base, paste: { text: '\r\n\r\na\r\n  b  \r\n', into: 'x' } }] }));
+    assert.equal(lines.steps[0].paste.text, 'a\n  b');
   });
 });
 
