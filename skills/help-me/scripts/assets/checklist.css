@@ -1,0 +1,244 @@
+:root {
+  --bg: #f6f7f9;
+  --card: #ffffff;
+  --ink: #1c2330;
+  --muted: #5b6676;
+  --line: #d9dee6;
+  --accent: #1f6feb;
+  --accent-ink: #ffffff;
+  --done: #1a7f4b;
+  --done-bg: #e9f6ee;
+  --warn: #9a4a00;
+  --warn-bg: #fff3e0;
+  --why-bg: #fffbe6;
+  --why-line: #e6d27a;
+  --code-bg: #eef1f5;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #12161c;
+    --card: #1b212b;
+    --ink: #e8ecf2;
+    --muted: #a3adbb;
+    --line: #2f3845;
+    --accent: #6ea8ff;
+    --accent-ink: #0b1220;
+    --done: #5fd08f;
+    --done-bg: #16291f;
+    --warn: #ffb866;
+    --warn-bg: #2e2212;
+    --why-bg: #2a2714;
+    --why-line: #6b5f1f;
+    --code-bg: #262e3a;
+  }
+}
+
+* { box-sizing: border-box; }
+html { font-size: 18px; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  line-height: 1.55;
+}
+a { color: var(--accent); }
+p { margin: 0 0 0.6em; }
+p:last-child { margin-bottom: 0; }
+code, pre {
+  font-family: ui-monospace, "Cascadia Mono", Consolas, Menlo, monospace;
+  font-size: 0.9em;
+}
+code { background: var(--code-bg); padding: 0.1em 0.35em; border-radius: 4px; }
+
+.top, main, .progress-row { max-width: 720px; margin: 0 auto; padding: 0 16px; }
+.top { padding-top: 28px; }
+h1 { font-size: 1.7rem; line-height: 1.25; margin: 0 0 0.4em; }
+.source { color: var(--muted); font-size: 0.9rem; margin-bottom: 0.3em; }
+.summary { font-size: 1.05rem; }
+.facts { color: var(--muted); margin-top: 0.4em; }
+
+.progress-row {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding-top: 10px;
+  padding-bottom: 10px;
+  background: var(--bg);
+  box-shadow: 0 1px 0 var(--line);
+  font-size: 0.9rem;
+}
+.progress-row progress { flex: 1; height: 14px; accent-color: var(--done); }
+
+.how { color: var(--muted); margin: 16px 0; }
+
+.card {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 14px 18px;
+  margin: 0 0 14px;
+}
+.card h2, .words summary { font-size: 1rem; margin: 0 0 0.4em; font-weight: 650; }
+.card ul { margin: 0; padding-left: 1.2em; }
+.words summary { cursor: pointer; margin: 0; }
+.words dl { margin: 0.7em 0 0; }
+.words dt { font-weight: 650; }
+.words dd { margin: 0 0 0.6em; color: var(--muted); }
+
+h2.group { font-size: 1.15rem; margin: 26px 0 10px; }
+
+ol.steps { list-style: none; margin: 0; padding: 0; }
+.step {
+  position: relative;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-left: 5px solid var(--line);
+  border-radius: 10px;
+  padding: 14px 18px;
+  margin: 0 0 14px;
+}
+.step.current { border-left-color: var(--accent); }
+.step.is-done { border-left-color: var(--done); background: var(--done-bg); }
+.step.is-done .step-body { opacity: 0.6; }
+.step.is-done .step-title { text-decoration: line-through; text-decoration-thickness: 1px; }
+
+.step-head { display: flex; align-items: flex-start; gap: 12px; }
+.tick { width: 26px; height: 26px; margin: 3px 0 0; flex: none; accent-color: var(--done); cursor: pointer; }
+.step-title { flex: 1; font-size: 1.1rem; font-weight: 650; cursor: pointer; }
+.num {
+  display: block;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.step-body { margin: 10px 0 0 38px; }
+.step-body > * + * { margin-top: 10px; }
+
+.tag {
+  display: block;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  margin-bottom: 2px;
+}
+.expect { border-left: 3px solid var(--done); padding-left: 12px; }
+.expect .tag { color: var(--done); }
+.if-stuck { border-left: 3px solid var(--line); padding-left: 12px; color: var(--muted); }
+.warning { background: var(--warn-bg); border-radius: 8px; padding: 10px 12px; }
+.warning .tag { color: var(--warn); }
+
+.paste { position: relative; }
+.paste-into { font-size: 0.9rem; color: var(--muted); margin-bottom: 4px; }
+.paste-text {
+  margin: 0;
+  background: var(--code-bg);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 12px 86px 12px 12px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+button { font: inherit; cursor: pointer; }
+.copy-btn {
+  background: var(--accent);
+  color: var(--accent-ink);
+  border: 0;
+  border-radius: 6px;
+  padding: 6px 14px;
+  font-size: 0.85rem;
+  font-weight: 650;
+}
+.paste .copy-btn { position: absolute; right: 8px; bottom: 8px; }
+.stuck-btn, .why-btn {
+  background: transparent;
+  color: var(--muted);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 4px 14px;
+  font-size: 0.85rem;
+}
+.why-btn { flex: none; margin-top: 2px; }
+.stuck-btn:hover, .why-btn:hover { color: var(--ink); border-color: var(--muted); }
+.link-btn { background: none; border: 0; padding: 0; color: var(--muted); text-decoration: underline; font-size: 0.85rem; }
+:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+
+/* The "why" note. Narrow screens: it opens inside the step. Wide screens: it
+   floats in the margin beside the step, so it never covers the instructions. */
+.why {
+  display: none;
+  flex-basis: 100%;
+  background: var(--why-bg);
+  border: 1px solid var(--why-line);
+  border-radius: 10px;
+  padding: 12px 14px;
+  font-size: 0.92rem;
+}
+.why-label {
+  display: block;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 4px;
+}
+.step-head { flex-wrap: wrap; }
+.step:hover .why,
+.why-btn:focus + .why,
+.why:hover { display: block; }
+.step.why-off .why { display: none; }
+
+@media (min-width: 1180px) {
+  .top, main, .progress-row { margin-left: max(16px, calc(50vw - 540px)); }
+  .why {
+    position: absolute;
+    left: calc(100% + 16px);
+    top: -1px;
+    width: 320px;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.12);
+  }
+  /* keeps the note open while the pointer crosses the gap to reach it */
+  .why::before { content: ""; position: absolute; left: -18px; top: 0; width: 18px; height: 100%; }
+}
+
+.done {
+  background: var(--done-bg);
+  border: 1px solid var(--done);
+  border-radius: 10px;
+  padding: 16px 18px;
+  margin: 0 0 14px;
+}
+.done h2 { margin: 0 0 0.3em; font-size: 1.2rem; }
+.done .copy-btn { margin-top: 6px; }
+.foot { margin: 20px 0 48px; }
+
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: 24px;
+  transform: translateX(-50%);
+  max-width: min(520px, calc(100vw - 32px));
+  background: var(--ink);
+  color: var(--bg);
+  border-radius: 8px;
+  padding: 10px 16px;
+  font-size: 0.9rem;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s;
+}
+.toast.show { opacity: 1; }
+
+@media print {
+  .progress-row, .why-btn, .stuck-btn, .copy-btn, .foot, .toast, .how { display: none; }
+  .why { display: block; position: static; width: auto; box-shadow: none; margin-top: 8px; }
+  .step { break-inside: avoid; }
+}
