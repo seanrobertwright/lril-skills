@@ -2,15 +2,19 @@
 /**
  * Turn a help-me checklist (JSON) into one self-contained web page and open it.
  *
- *     node build-checklist.mjs path/to/checklist.json [-o out.html] [--no-open] [-q]
+ *     node build-checklist.mjs path/to/checklist.json [--no-open] [-q]
+ *     node build-checklist.mjs --list | --open <slug> | --done <slug>
  *
  * No dependencies. Nothing is served and nothing keeps running: the page is a
- * single file, and ticks are remembered by the browser. See ../checklist-format.md.
+ * single file, and ticks are remembered by the browser. The checklist itself is
+ * kept in a folder in the home directory (see storeDir) so it can be listed and
+ * reopened in a later conversation. See ../checklist-format.md.
  */
 
 import { spawn } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import fs from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -302,9 +306,11 @@ ${head.join('\n')}
 <label for="progress">Your progress</label>
 <progress id="progress" value="0" max="${total}"></progress>
 <span id="progress-text" aria-live="polite">0 of ${total} done</span>
+<button type="button" class="save-btn" id="save-btn">Save my progress</button>
 </div>
 <main>
 <p class="how">Do one step at a time, top to bottom, and tick each box when it is done. Point at a step (or press its <strong>Why?</strong> button) to see why we do it. If a step does not go the way it says, press <strong>I'm stuck on this step</strong>.</p>
+<p class="how">You do not have to finish in one sitting. Press <strong>Save my progress</strong>, close this page, and when you are ready type <code>/help-me continue</code> in Claude to open it again with your ticks in place.</p>
 <noscript><p class="how">Ticks and the copy buttons need JavaScript. You can still read and follow every step.</p></noscript>
 ${extras.join('\n')}
 ${renderSteps(checklist.steps)}
@@ -322,14 +328,14 @@ ${renderSteps(checklist.steps)}
 `;
 }
 
-/* ------------------------------------------------------------------- main */
+/* ------------------------------------------------------------- build page */
 
 export function slugOf(filePath) {
   const base = path.basename(filePath, path.extname(filePath));
   return base.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') || 'checklist';
 }
 
-export function build(jsonPath, outPath = null) {
+function readChecklist(jsonPath) {
   let raw;
   try {
     raw = JSON.parse(fs.readFileSync(jsonPath, 'utf8').replace(/^﻿/, ''));
@@ -338,12 +344,120 @@ export function build(jsonPath, outPath = null) {
     if (err instanceof SyntaxError) throw new ChecklistError(`${jsonPath} is not valid JSON: ${err.message}`);
     throw err;
   }
-  const checklist = validateChecklist(raw);
+  return validateChecklist(raw);
+}
+
+/** Write the page for one checklist file. Without `outPath` it lands beside the JSON. */
+export function build(jsonPath, outPath = null) {
+  const checklist = readChecklist(jsonPath);
   const out = path.resolve(outPath || path.join(path.dirname(jsonPath), `${slugOf(jsonPath)}.html`));
   fs.mkdirSync(path.dirname(out), { recursive: true });
   fs.writeFileSync(out, renderHtml(checklist, slugOf(out)), 'utf8');
   return { out, steps: checklist.steps.length };
 }
+
+/* ------------------------------------------------------------------ store */
+/* Checklists are kept in one folder in the person's home directory, so they
+   outlive the conversation that made them. A checklist is "open" while its
+   JSON sits in that folder; finishing it moves it into done/. */
+
+const SLUG_RE = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+
+/** The folder open checklists live in. HELP_ME_HOME overrides the default. */
+export function storeDir(env = process.env) {
+  if (Object.hasOwn(env, 'HELP_ME_HOME')) {
+    const value = String(env.HELP_ME_HOME).trim();
+    if (!value) throw new ChecklistError('HELP_ME_HOME is set but empty');
+    return path.resolve(value);
+  }
+  return path.join(os.homedir(), '.help-me');
+}
+
+function checkSlug(slug) {
+  if (typeof slug !== 'string' || !SLUG_RE.test(slug)) {
+    throw new ChecklistError(`"${slug}" is not a checklist name (use the slug that --list prints)`);
+  }
+  return slug;
+}
+
+/** The one place a timestamp is turned into text. */
+function isoTime(date) {
+  return date.toISOString();
+}
+
+function sameFile(a, b) {
+  try {
+    return fs.realpathSync.native(a) === fs.realpathSync.native(b);
+  } catch {
+    return false; // one of them does not exist yet
+  }
+}
+
+/** Keep a checklist: copy its JSON into the store and write its page there. */
+export function store(jsonPath, dir = storeDir()) {
+  const checklist = readChecklist(jsonPath);
+  const slug = slugOf(jsonPath);
+  fs.mkdirSync(dir, { recursive: true });
+  const json = path.join(dir, `${slug}.json`);
+  if (!sameFile(jsonPath, json)) fs.copyFileSync(jsonPath, json);
+  const out = path.join(dir, `${slug}.html`);
+  fs.writeFileSync(out, renderHtml(checklist, slug), 'utf8');
+  return { slug, out, json, steps: checklist.steps.length };
+}
+
+/** Every open checklist, the most recently saved first. */
+export function listOpen(dir = storeDir()) {
+  let names;
+  try {
+    names = fs.readdirSync(dir);
+  } catch (err) {
+    if (err.code === 'ENOENT') return [];
+    throw err;
+  }
+  const items = [];
+  for (const name of names) {
+    if (path.extname(name) !== '.json') continue;
+    const slug = path.basename(name, '.json');
+    if (!SLUG_RE.test(slug)) continue;
+    const json = path.join(dir, name);
+    const item = { slug, saved: isoTime(fs.statSync(json).mtime), json, page: path.join(dir, `${slug}.html`) };
+    try {
+      const checklist = readChecklist(json);
+      item.title = checklist.title;
+      item.source = checklist.source;
+      item.steps = checklist.steps.length;
+    } catch (err) {
+      if (!(err instanceof ChecklistError)) throw err;
+      item.problem = err.message;
+    }
+    items.push(item);
+  }
+  return items.sort((a, b) => (a.saved < b.saved ? 1 : a.saved > b.saved ? -1 : a.slug.localeCompare(b.slug)));
+}
+
+function storedJson(slug, dir) {
+  const json = path.join(dir, `${checkSlug(slug)}.json`);
+  if (!fs.existsSync(json)) throw new ChecklistError(`there is no open checklist called "${slug}"`);
+  return json;
+}
+
+/** Rebuild the page of an open checklist, so it picks up the current page code. Returns what store returns. */
+export function reopen(slug, dir = storeDir()) {
+  return store(storedJson(slug, dir), dir);
+}
+
+/** Mark a checklist finished: it leaves the open list and is kept in done/. */
+export function finish(slug, dir = storeDir()) {
+  const json = storedJson(slug, dir);
+  const doneDir = path.join(dir, 'done');
+  fs.mkdirSync(doneDir, { recursive: true });
+  fs.renameSync(json, path.join(doneDir, `${slug}.json`));
+  const page = path.join(dir, `${slug}.html`);
+  if (fs.existsSync(page)) fs.renameSync(page, path.join(doneDir, `${slug}.html`));
+  return { slug, dir: doneDir };
+}
+
+/* ------------------------------------------------------------------- main */
 
 function openInBrowser(file) {
   // each of these takes the path as one argument, so no shell ever parses it
@@ -361,39 +475,63 @@ function openInBrowser(file) {
   });
 }
 
-const USAGE = 'usage: node build-checklist.mjs <checklist.json> [-o out.html] [--no-open] [-q]';
+const USAGE = `usage:
+  node build-checklist.mjs <checklist.json> [--no-open] [-q]   keep the checklist and open its page
+  node build-checklist.mjs <checklist.json> -o <out.html>      write the page there instead, keeping nothing
+  node build-checklist.mjs --list                              print the open checklists as JSON
+  node build-checklist.mjs --open <slug> [--no-open]           reopen an open checklist
+  node build-checklist.mjs --done <slug>                       mark a checklist finished`;
+
+const VALUE_FLAGS = { '-o': 'out', '--out': 'out', '--open': 'open', '--done': 'done' };
+const SWITCHES = { '-q': 'quiet', '--quiet': 'quiet', '--no-open': 'noOpen', '--list': 'list', '-h': 'help', '--help': 'help' };
+
+export function parseArgs(args) {
+  const opts = { inputs: [] };
+  for (let i = 0; i < args.length; i++) {
+    const arg = args[i];
+    if (Object.hasOwn(VALUE_FLAGS, arg)) {
+      const value = args[i + 1];
+      if (value === undefined || value.startsWith('-')) throw new ChecklistError(`${arg} needs a value`);
+      opts[VALUE_FLAGS[arg]] = value;
+      i++;
+    } else if (Object.hasOwn(SWITCHES, arg)) opts[SWITCHES[arg]] = true;
+    else if (arg.startsWith('-')) throw new ChecklistError(`unknown option ${arg}`);
+    else opts.inputs.push(arg);
+  }
+  const modes = [opts.list, opts.open, opts.done, opts.inputs.length > 0].filter(Boolean).length;
+  if (!opts.help && modes !== 1) throw new ChecklistError('give one checklist file, or one of --list, --open, --done');
+  if (opts.inputs.length > 1) throw new ChecklistError('give one checklist file at a time');
+  return opts;
+}
+
+async function show(result, opts) {
+  if (!opts.quiet) console.log(`wrote ${result.out}  (${result.steps} ${result.steps === 1 ? 'step' : 'steps'})`);
+  if (opts.noOpen) return;
+  const opened = await openInBrowser(result.out);
+  if (!opts.quiet) {
+    console.log(opened
+      ? 'opened it in the web browser'
+      : 'could not open the web browser: open that file by hand');
+  }
+}
 
 async function main(argv) {
-  const args = argv.slice(2);
-  if (args.includes('-h') || args.includes('--help')) { console.log(USAGE); return 0; }
-  const quiet = args.includes('-q') || args.includes('--quiet');
-  const noOpen = args.includes('--no-open');
-  const oi = Math.max(args.indexOf('-o'), args.indexOf('--out'));
-  if (oi > -1 && (oi + 1 >= args.length || args[oi + 1].startsWith('-'))) {
-    console.error(`-o needs a file name\n${USAGE}`);
-    return 2;
-  }
-  const out = oi > -1 ? args[oi + 1] : null;
-  const input = args.find((a, i) => !a.startsWith('-') && (oi === -1 || i !== oi + 1));
-  if (!input) { console.error(USAGE); return 2; }
-
-  let result;
   try {
-    result = build(input, out);
+    const opts = parseArgs(argv.slice(2));
+    if (opts.help) { console.log(USAGE); return 0; }
+    if (opts.list) { console.log(JSON.stringify(listOpen(), null, 2)); return 0; }
+    if (opts.done) {
+      const done = finish(opts.done);
+      if (!opts.quiet) console.log(`finished ${done.slug}: moved to ${done.dir}`);
+      return 0;
+    }
+    if (opts.open) { await show(reopen(opts.open), opts); return 0; }
+    await show(opts.out ? build(opts.inputs[0], opts.out) : store(opts.inputs[0]), opts);
+    return 0;
   } catch (err) {
-    if (err instanceof ChecklistError) { console.error(`Checklist problem: ${err.message}`); return 2; }
+    if (err instanceof ChecklistError) { console.error(`Checklist problem: ${err.message}\n${USAGE}`); return 2; }
     throw err;
   }
-  if (!quiet) console.log(`wrote ${result.out}  (${result.steps} ${result.steps === 1 ? 'step' : 'steps'})`);
-  if (!noOpen) {
-    const opened = await openInBrowser(result.out);
-    if (!quiet) {
-      console.log(opened
-        ? 'opened it in the web browser'
-        : 'could not open the web browser: open that file by hand');
-    }
-  }
-  return 0;
 }
 
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {

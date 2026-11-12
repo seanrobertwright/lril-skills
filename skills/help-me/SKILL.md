@@ -1,6 +1,6 @@
 ---
 name: help-me
-description: Turn a task the user does not understand into a follow-along checklist web page, written for someone who is not a programmer, with a plain-words "why" note on every step. Use when the user types /help-me, says they do not understand the instructions they were given or what they are supposed to do, or asks to be walked through a GitHub issue step by step (/help-me 494, /help-me issue 494).
+description: Turn a task the user does not understand into a follow-along checklist web page, written for someone who is not a programmer, with a plain-words "why" note on every step. Use when the user types /help-me, says they do not understand the instructions they were given or what they are supposed to do, asks to be walked through a GitHub issue step by step (/help-me 494, /help-me issue 494), or wants to pick up a checklist they started earlier (/help-me continue).
 ---
 
 # Help Me
@@ -17,6 +17,7 @@ Read what came after `/help-me`:
 
 | They typed | The task is |
 |---|---|
+| `continue`, `resume`, or words asking for a checklist they already started | not a new task: go to **Continue an earlier checklist** below |
 | a number, `#494`, or `issue 494` | that GitHub issue in this repo |
 | words about instructions they were just given | the most recent thing in this conversation that asked them to do something |
 | a description of a task | that task |
@@ -99,20 +100,22 @@ step is needed, the step probably should not be there.
 
 ## 4. Build the page and open it
 
-Save the JSON outside the project so nothing is added to their repo: use your scratchpad directory if
-you have one, otherwise a `help-me` folder in the system temp directory. Name it for the task
-(`issue-494.json`, `set-up-login.json`).
+Write the JSON outside the project so nothing is added to their repo: use your scratchpad directory if
+you have one, otherwise the system temp directory. The file name becomes the checklist's name, so
+name it for the task (`issue-494.json`, `set-up-login.json`). First run `--list` (below) and avoid a
+name an open checklist for a different task already has, or you will overwrite it.
 
 ```bash
 node <this skill's folder>/scripts/build-checklist.mjs <path>/issue-494.json
 ```
 
-The script checks the file, writes `issue-494.html` beside it, and opens it in the web browser. It
-needs Node 18 or newer and nothing else. If it prints `Checklist problem:`, fix the JSON and run it
-again. If it says it could not open the browser, give the person the full path of the `.html` file
-and tell them to double-click it.
+The script checks the file, keeps a copy of it and its page in the person's checklist folder
+(`.help-me` in their home directory), and opens the page in the web browser. Keeping it there is what
+lets them come back to it in a later conversation. It needs Node 18 or newer and nothing else. If it
+prints `Checklist problem:`, fix the JSON and run it again. If it says it could not open the browser,
+give the person the full path of the `.html` file it printed and tell them to double-click it.
 
-## 5. Hand over in three sentences
+## 5. Hand over in four sentences
 
 Tell them, in the chat:
 
@@ -120,14 +123,59 @@ Tell them, in the chat:
 2. to work from the top and tick each box as they go
 3. if a step does not go the way it says, press **I'm stuck on this step** and paste what it copies
    back here, adding what they see
+4. they can stop at any point: press **Save my progress**, close the page, and type
+   `/help-me continue` later to open it again
 
 Nothing else. Do not repeat the steps in the chat.
 
 ## 6. When they come back stuck
 
-The pasted message names the step. Find out what they see, then fix **that step** in the JSON: split
-it smaller, correct the detail that was wrong, or add the missing step before it. Build again to the
-same file name, so the ticks they already made are kept, and tell them to refresh the page.
+The pasted message names the step. Find out what they see, then fix **that step**: split it smaller,
+correct the detail that was wrong, or add the missing step before it. Edit the kept copy of the JSON
+(`--list` prints its path as `json`) and build that file again. The name stays the same, so the ticks
+they already made are kept. Tell them to refresh the page.
 
 A person stuck on a step means the step was written badly. Rewrite the step. Do not explain it again
 in the chat.
+
+## 7. When they say they have finished
+
+The page's **All done** button copies a message saying every step is ticked. Check the result
+yourself first (the file exists, the page loads, the issue is closed: whatever "finished" means for
+this task) and tell them what you found. Only when it really worked, take the checklist off their
+open list:
+
+```bash
+node <this skill's folder>/scripts/build-checklist.mjs --done issue-494
+```
+
+If it did not work, leave the checklist open and fix the step that let them down, as in section 6.
+
+## Continue an earlier checklist
+
+```bash
+node <this skill's folder>/scripts/build-checklist.mjs --list
+```
+
+This prints the open checklists as JSON, most recently saved first. Each has a `slug` (its name), a
+`title`, a `source`, the number of `steps`, and `saved` (when its steps were last written, in UTC).
+
+- **None**: say there is no checklist waiting, and offer to make one.
+- **One**: open it. Do not ask.
+- **Two to four**: ask which one with `AskUserQuestion`, one option per checklist, labelled with its
+  `title` and described with its `source` and the day it was saved.
+- **More than four**: show a numbered list of titles in the chat and ask for the number.
+
+If their message already names one ("continue the login one"), open that one without asking. Then:
+
+```bash
+node <this skill's folder>/scripts/build-checklist.mjs --open <slug>
+```
+
+Tell them in one sentence that it is open and their ticks are where they left them. Do not rebuild
+the steps or re-read the issue unless they say something has changed.
+
+You cannot see their ticks: the page keeps them in their web browser, not in a file. So never state
+how far along a checklist is; if you need to know, ask them which step they are on. The ticks come
+back only in the same browser on the same computer. An entry in the list that has a `problem` instead
+of a `title` is a damaged file: tell them it could not be read, and do not offer it.

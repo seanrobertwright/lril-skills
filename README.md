@@ -222,13 +222,16 @@ For when Claude has told you to do something and you do not know what it means. 
 /help-me I don't understand the instructions you just gave me
 /help-me issue 494
 /help-me 494
+/help-me continue
 ```
 
 With no number it uses the most recent thing in the conversation that asked you to do something. With a number it reads that GitHub issue in the current repo through `gh` and walks you through getting it done.
 
 Each step is one action: where to look, what to click or type, what you should see afterwards, and what to do if you do not. Anything you need to type has a **Copy** button. Point at a step, or press its **Why?** button, for an everyday explanation of why the step is there. Tick the steps as you go; the page remembers your ticks. If a step does not go the way it says, **I'm stuck on this step** copies a message to paste back to Claude, which then rewrites that step.
 
-The page is a single file saved outside your project. Nothing is installed and nothing is left running.
+You do not have to finish in one sitting. Press **Save my progress**, close the page, and type `/help-me continue` later, even in a new conversation. It lists the checklists you have not finished, lets you pick one, and opens it with your ticks in place. A checklist leaves that list once you tell Claude you have finished it and Claude has checked the result.
+
+Each checklist is a single page kept in a `.help-me` folder in your home directory, outside your project. Nothing is installed and nothing is left running. Your ticks live in your web browser, so they come back in the same browser on the same computer.
 
 **Use it when:** you have been given steps you cannot follow, or you want to be walked through an issue one small action at a time.
 

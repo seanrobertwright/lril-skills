@@ -27,7 +27,14 @@
     steps.forEach(function (step) {
       if (tickOf(step).checked) state[step.getAttribute('data-key')] = true;
     });
-    try { window.localStorage.setItem(storeKey, JSON.stringify(state)); } catch (e) { /* page still works */ }
+    // read it back: some browsers accept the write and keep nothing
+    var wanted = JSON.stringify(state);
+    try {
+      window.localStorage.setItem(storeKey, wanted);
+      return window.localStorage.getItem(storeKey) === wanted;
+    } catch (e) {
+      return false; // the page still works, it just will not remember
+    }
   }
 
   function tickOf(step) { return step.querySelector('.tick'); }
@@ -121,6 +128,15 @@
       'I have finished every step of the help-me checklist "' + listTitle + '". Please check that it worked.',
       'Copied. Paste it into Claude.'
     );
+  });
+
+  document.getElementById('save-btn').addEventListener('click', function () {
+    var done = steps.filter(function (step) { return tickOf(step).checked; }).length;
+    say(save()
+      ? 'Saved: ' + done + ' of ' + steps.length + ' steps done. You can close this page. '
+        + 'To come back, type /help-me continue in Claude.'
+      : 'This browser would not save your ticks (it may be in private mode). '
+        + 'Keep this page open, or note that you reached step ' + (done + 1) + '.');
   });
 
   document.getElementById('reset-btn').addEventListener('click', function () {

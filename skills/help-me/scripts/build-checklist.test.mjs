@@ -11,7 +11,13 @@ import {
   ChecklistError,
   MAX_STEPS,
   build,
+  finish,
   inline,
+  listOpen,
+  parseArgs,
+  reopen,
+  store,
+  storeDir,
   paragraphs,
   renderHtml,
   safeHref,
@@ -204,7 +210,10 @@ describe('build and the command line', () => {
 
   it('exits 2 with a plain message for a missing file, bad JSON and a bad checklist', () => {
     const dir = tmpDir();
-    const run = (...args) => spawnSync(process.execPath, [SCRIPT, ...args, '--no-open'], { encoding: 'utf8' });
+    const run = (...args) => spawnSync(process.execPath, [SCRIPT, ...args, '--no-open'], {
+      encoding: 'utf8',
+      env: { ...process.env, HELP_ME_HOME: path.join(dir, 'store') },
+    });
 
     let r = run(path.join(dir, 'nope.json'));
     assert.equal(r.status, 2);
@@ -234,5 +243,135 @@ describe('build and the command line', () => {
     assert.equal(r.status, 0, r.stderr);
     assert.match(r.stdout, /wrote .*out\.html/);
     assert.ok(fs.existsSync(out));
+  });
+});
+
+describe('keeping checklists to continue later', () => {
+  function write(dir, name, overrides) {
+    const file = path.join(dir, name);
+    fs.writeFileSync(file, JSON.stringify(sample(overrides)));
+    return file;
+  }
+
+  it('gives the page a save button', () => {
+    assert.match(renderHtml(validateChecklist(sample()), 'x'), /<button type="button" class="save-btn" id="save-btn">/);
+  });
+
+  it('store copies the JSON into the store and writes the page there', () => {
+    const work = tmpDir();
+    const home = path.join(tmpDir(), 'store');
+    const kept = store(write(work, 'Issue 494.json'), home);
+    assert.equal(kept.slug, 'issue-494');
+    assert.equal(kept.out, path.join(home, 'issue-494.html'));
+    assert.ok(fs.existsSync(path.join(home, 'issue-494.json')));
+    assert.match(fs.readFileSync(kept.out, 'utf8'), /data-slug="issue-494"/);
+  });
+
+  it('store accepts a file that already lives in the store', () => {
+    const home = tmpDir();
+    const file = write(home, 'task.json');
+    assert.equal(store(file, home).steps, 2);
+    assert.equal(JSON.parse(fs.readFileSync(file, 'utf8')).title, sample().title);
+  });
+
+  it('store keeps nothing when the checklist is invalid', () => {
+    const home = path.join(tmpDir(), 'store');
+    assert.throws(() => store(write(tmpDir(), 'bad.json', { steps: [] }), home), ChecklistError);
+    assert.deepEqual(listOpen(home), []);
+  });
+
+  it('listOpen returns nothing for a store that does not exist', () => {
+    assert.deepEqual(listOpen(path.join(tmpDir(), 'never-made')), []);
+  });
+
+  it('listOpen describes each open checklist, newest first, and flags a broken one', () => {
+    const work = tmpDir();
+    const home = tmpDir();
+    store(write(work, 'older.json', { title: 'Older task' }), home);
+    store(write(work, 'newer.json', { title: 'Newer task', source: 'GitHub issue #7' }), home);
+    fs.utimesSync(path.join(home, 'older.json'), new Date(1_600_000_000_000), new Date(1_600_000_000_000));
+    fs.writeFileSync(path.join(home, 'broken.json'), '{ nope');
+    fs.utimesSync(path.join(home, 'broken.json'), new Date(1_500_000_000_000), new Date(1_500_000_000_000));
+
+    const items = listOpen(home);
+    assert.deepEqual(items.map((i) => i.slug), ['newer', 'older', 'broken']);
+    assert.equal(items[0].title, 'Newer task');
+    assert.equal(items[0].source, 'GitHub issue #7');
+    assert.equal(items[0].steps, 2);
+    assert.equal(items[1].saved, '2020-09-13T12:26:40.000Z');
+    assert.match(items[2].problem, /not valid JSON/);
+  });
+
+  it('reopen rebuilds the page of an open checklist', () => {
+    const home = tmpDir();
+    const kept = store(write(tmpDir(), 'task.json'), home);
+    fs.rmSync(kept.out);
+    assert.equal(reopen('task', home).out, kept.out);
+    assert.ok(fs.existsSync(kept.out));
+  });
+
+  it('finish moves a checklist out of the open list into done/', () => {
+    const home = tmpDir();
+    store(write(tmpDir(), 'task.json'), home);
+    finish('task', home);
+    assert.deepEqual(listOpen(home), []);
+    assert.ok(fs.existsSync(path.join(home, 'done', 'task.json')));
+    assert.ok(fs.existsSync(path.join(home, 'done', 'task.html')));
+  });
+
+  it('reopen and finish reject unknown names and anything that is not a slug', () => {
+    const home = tmpDir();
+    assert.throws(() => reopen('nope', home), /no open checklist called "nope"/);
+    assert.throws(() => finish('nope', home), /no open checklist called "nope"/);
+    for (const bad of ['../secrets', 'a/b', 'A B', '', '..']) {
+      assert.throws(() => reopen(bad, home), /is not a checklist name/);
+      assert.throws(() => finish(bad, home), /is not a checklist name/);
+    }
+  });
+
+  it('storeDir honours HELP_ME_HOME and rejects an empty one', () => {
+    assert.equal(storeDir({ HELP_ME_HOME: '/tmp/x' }), path.resolve('/tmp/x'));
+    assert.throws(() => storeDir({ HELP_ME_HOME: '  ' }), /set but empty/);
+    assert.equal(storeDir({}), path.join(os.homedir(), '.help-me'));
+  });
+
+  it('parseArgs wants exactly one thing to do', () => {
+    assert.deepEqual(parseArgs(['a.json', '--no-open']).inputs, ['a.json']);
+    assert.equal(parseArgs(['--open', 'task']).open, 'task');
+    assert.throws(() => parseArgs([]), /give one checklist file/);
+    assert.throws(() => parseArgs(['a.json', '--list']), /give one checklist file/);
+    assert.throws(() => parseArgs(['a.json', 'b.json']), /give one checklist file/);
+    assert.throws(() => parseArgs(['--open']), /--open needs a value/);
+    assert.throws(() => parseArgs(['-o', '--list']), /-o needs a value/);
+    assert.throws(() => parseArgs(['--frobnicate']), /unknown option/);
+  });
+
+  it('keeps, lists, reopens and finishes a checklist from the command line', () => {
+    const home = path.join(tmpDir(), 'store');
+    const run = (...args) => spawnSync(process.execPath, [SCRIPT, ...args], {
+      encoding: 'utf8',
+      env: { ...process.env, HELP_ME_HOME: home },
+    });
+
+    let r = run(EXAMPLE, '--no-open');
+    assert.equal(r.status, 0, r.stderr);
+    assert.ok(fs.existsSync(path.join(home, 'example-checklist.html')));
+
+    r = run('--list');
+    assert.equal(r.status, 0, r.stderr);
+    const listed = JSON.parse(r.stdout);
+    assert.equal(listed.length, 1);
+    assert.equal(listed[0].slug, 'example-checklist');
+
+    r = run('--open', 'example-checklist', '--no-open');
+    assert.equal(r.status, 0, r.stderr);
+
+    r = run('--open', '../x', '--no-open');
+    assert.equal(r.status, 2);
+    assert.match(r.stderr, /is not a checklist name/);
+
+    r = run('--done', 'example-checklist');
+    assert.equal(r.status, 0, r.stderr);
+    assert.deepEqual(JSON.parse(run('--list').stdout), []);
   });
 });

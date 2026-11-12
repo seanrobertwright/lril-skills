@@ -71,7 +71,18 @@ h1 { font-size: 1.7rem; line-height: 1.25; margin: 0 0 0.4em; }
   box-shadow: 0 1px 0 var(--line);
   font-size: 0.9rem;
 }
-.progress-row progress { flex: 1; height: 14px; accent-color: var(--done); }
+.progress-row { flex-wrap: wrap; }
+.progress-row progress { flex: 1; min-width: 80px; height: 14px; accent-color: var(--done); }
+.save-btn {
+  background: var(--card);
+  color: var(--ink);
+  border: 1px solid var(--muted);
+  border-radius: 6px;
+  padding: 4px 12px;
+  font-size: 0.85rem;
+  font-weight: 650;
+}
+.save-btn:hover { border-color: var(--ink); }
 
 .how { color: var(--muted); margin: 16px 0; }
 
@@ -238,7 +249,7 @@ button { font: inherit; cursor: pointer; }
 .toast.show { opacity: 1; }
 
 @media print {
-  .progress-row, .why-btn, .stuck-btn, .copy-btn, .foot, .toast, .how { display: none; }
+  .progress-row, .save-btn, .why-btn, .stuck-btn, .copy-btn, .foot, .toast, .how { display: none; }
   .why { display: block; position: static; width: auto; box-shadow: none; margin-top: 8px; }
   .step { break-inside: avoid; }
 }
