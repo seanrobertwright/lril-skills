@@ -1,0 +1,69 @@
+{
+  "title": "Save your work and send it to GitHub",
+  "summary": "Claude changed some files on your computer. These steps store those changes safely and send a copy to GitHub.\n\nYou are finished when the GitHub page shows your change at the top of the list.",
+  "source": "Instructions Claude gave in this conversation",
+  "minutes": 5,
+  "before": [
+    "The Claude Code window you were just using, still open"
+  ],
+  "words": [
+    {
+      "word": "Terminal",
+      "meaning": "The window where you type instructions for the computer instead of clicking. Claude Code runs inside one."
+    },
+    {
+      "word": "Commit",
+      "meaning": "A saved snapshot of your files, with a short note saying what changed."
+    },
+    {
+      "word": "Push",
+      "meaning": "Sending your saved snapshots from your computer up to GitHub."
+    }
+  ],
+  "steps": [
+    {
+      "group": "Part 1: Save the changes",
+      "title": "Ask Claude what changed",
+      "do": "Click once inside the Claude Code window, where the blinking line is. Paste the text below and press **Enter**.",
+      "paste": {
+        "text": "Show me a plain-English list of every file you changed and why.",
+        "into": "the Claude Code window"
+      },
+      "why": "Before you sign for a parcel you look at what is inside. This is the same check: you see what is about to be saved, so nothing goes in that you did not expect.",
+      "expect": "A short list of file names, each with a sentence saying what changed.",
+      "stuck": "If Claude says nothing has changed, there is nothing to save. Stop here and tell Claude what you expected to see."
+    },
+    {
+      "group": "Part 1: Save the changes",
+      "title": "Ask Claude to save a snapshot",
+      "do": "Paste the text below into the same window and press **Enter**. If Claude asks for permission to run a command, press **Enter** again to allow it.",
+      "paste": {
+        "text": "/commit",
+        "into": "the Claude Code window"
+      },
+      "why": "A commit is like taking a photo of your desk before you tidy it. If something goes wrong later, you can put everything back exactly as it was in the photo.",
+      "expect": "Claude replies with a line that starts with a short code of letters and numbers, followed by a one-line note describing the change.",
+      "stuck": "If you see red text, do not try again. Copy the red text and send it to Claude with the stuck button below."
+    },
+    {
+      "group": "Part 2: Send it to GitHub",
+      "title": "Send the snapshot to GitHub",
+      "do": "Paste the text below into the same window and press **Enter**.",
+      "paste": {
+        "text": "Push my commit to GitHub.",
+        "into": "the Claude Code window"
+      },
+      "why": "Right now the snapshot only lives on this computer. Pushing is like putting a copy in a safe-deposit box across town: if this computer breaks, the work is still there.",
+      "warning": "After this step other people who can see the project on GitHub can see your change. Only continue if the list from step 1 looked right.",
+      "expect": "Claude says the push worked and names the branch it sent.",
+      "stuck": "If Claude says you are not signed in to GitHub, press the stuck button and say so. Signing in takes one extra step and Claude will walk you through it."
+    },
+    {
+      "group": "Part 2: Send it to GitHub",
+      "title": "Check it arrived",
+      "do": "Open [github.com](https://github.com) in your web browser. Click your project's name in the list on the left, then click the word **Commits** near the top right of the file list.",
+      "why": "This is the tracking page for the parcel you just posted. Seeing it listed proves it arrived, instead of trusting that it did.",
+      "expect": "Your one-line note from step 2 is the first row in the list, with the words \"now\" or \"1 minute ago\" beside it."
+    }
+  ]
+}

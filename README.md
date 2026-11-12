@@ -4,7 +4,7 @@
 
 <p align="center">
   <img src="https://img.shields.io/badge/version-1.0.0-blue?style=flat-square" alt="Version">
-  <img src="https://img.shields.io/badge/skills-39-blueviolet?style=flat-square" alt="Skills">
+  <img src="https://img.shields.io/badge/skills-40-blueviolet?style=flat-square" alt="Skills">
   <img src="https://img.shields.io/badge/license-MIT-green?style=flat-square" alt="License">
   <img src="https://img.shields.io/badge/node-%3E%3D18-brightgreen?style=flat-square" alt="Node">
   <img src="https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey?style=flat-square" alt="Platform">
@@ -33,13 +33,13 @@ That's it. An interactive installer walks you through selecting skills and choos
 
 ## Skills at a glance
 
-**39 skills** — 12 authored here, 27 mirrored from other authors.
+**40 skills** — 13 authored here, 27 mirrored from other authors.
 
 | | |
 |---|---|
 | **Testing & QA** | [`agent-browser`](#agent-browser--browser-automation) · [`e2e-test`](#e2e-test--end-to-end-testing) · [`creating-uat`](#creating-uat--user-acceptance-testing) · [`processing-uat`](#processing-uat--turn-uat-results-into-a-fix-plan) · [`test-sweet`](#test-sweet--only-the-tests-each-build-step-needs) · `tdd` · `diagnosing-bugs` |
 | **Planning & design** | [`intent-engine`](#intent-engine--structured-intent-planning) · [`how-its-made`](#how-its-made--how-a-repo-was-built) · `codebase-design` · `domain-modeling` · `grilling` · `prototype` · `to-prd` · `to-issues` |
-| **Workflow** | [`lril`](#lril--second-brain-workflow-commands) · [`ask-sean`](#ask-sean--which-skill-and-whats-next) · `implement` · `triage` · `handoff` · `resolving-merge-conflicts` |
+| **Workflow** | [`lril`](#lril--second-brain-workflow-commands) · [`ask-sean`](#ask-sean--which-skill-and-whats-next) · [`help-me`](#help-me--a-follow-along-checklist-for-a-task-you-do-not-understand) · `implement` · `triage` · `handoff` · `resolving-merge-conflicts` |
 | **Environment** | [`port-authhority`](#port-authhority--docker-port-conflict-manager) · [`context-diet`](#context-diet--shrink-what-loads-every-session) · `setup-pre-commit` · `git-guardrails-claude-code` |
 | **Communication** | [`excalidraw-diagram`](#excalidraw-diagram--visual-diagramming) · `edit-article` · `teach` · `obsidian-vault` · `reladraw` · `logo-design` |
 
@@ -214,6 +214,29 @@ The plan is saved to `test-sweet/` in your project and waits for your approval b
 
 ---
 
+### `help-me` — A follow-along checklist for a task you do not understand
+
+For when Claude has told you to do something and you do not know what it means. It rewrites the task as a checklist web page for someone who is not a programmer, and opens the page in your browser.
+
+```
+/help-me I don't understand the instructions you just gave me
+/help-me issue 494
+/help-me 494
+/help-me continue
+```
+
+With no number it uses the most recent thing in the conversation that asked you to do something. With a number it reads that GitHub issue in the current repo through `gh` and walks you through getting it done.
+
+Each step is one action: where to look, what to click or type, what you should see afterwards, and what to do if you do not. Anything you need to type has a **Copy** button. Point at a step, or press its **Why?** button, for an everyday explanation of why the step is there. Tick the steps as you go; the page remembers your ticks. If a step does not go the way it says, **I'm stuck on this step** copies a message to paste back to Claude, which then rewrites that step.
+
+You do not have to finish in one sitting. Press **Save my progress**, close the page, and type `/help-me continue` later, even in a new conversation. It lists the checklists you have not finished, lets you pick one, and opens it with your ticks in place. A checklist leaves that list once you tell Claude you have finished it and Claude has checked the result.
+
+Each checklist is a single page kept in a `.help-me` folder in your home directory, outside your project. Nothing is installed and nothing is left running. Your ticks live in your web browser, so they come back in the same browser on the same computer.
+
+**Use it when:** you have been given steps you cannot follow, or you want to be walked through an issue one small action at a time.
+
+---
+
 ## Mirrored from other authors
 
 Installed from this repo alongside the skills above, but authored elsewhere and mirrored verbatim.
@@ -326,7 +349,7 @@ How it works:
 
 - **Node.js** >= 18
 - **Claude Code** (any recent version)
-- Individual skills may have their own dependencies (documented in each skill's instructions). Notably, `how-its-made` needs `git` and **Node 18+**, and uses an authenticated `gh` for pull request evidence when it is available. `creating-uat` ships its helper for both **Python 3.8+** and **Node 18+**, and needs neither `pip install` nor `npm install`. `logo-design` runs dependency-free **Python 3** scripts; turning SVGs into PNGs needs one renderer on the machine (cairosvg, rsvg-convert, Inkscape, or headless Chrome/Chromium). `reladraw` needs the `reladraw` CLI (`npm install -g reladraw`, or `npx reladraw` without installing).
+- Individual skills may have their own dependencies (documented in each skill's instructions). Notably, `how-its-made` needs `git` and **Node 18+**, and uses an authenticated `gh` for pull request evidence when it is available. `help-me` needs **Node 18+**, and an authenticated `gh` when you give it an issue number. `creating-uat` ships its helper for both **Python 3.8+** and **Node 18+**, and needs neither `pip install` nor `npm install`. `logo-design` runs dependency-free **Python 3** scripts; turning SVGs into PNGs needs one renderer on the machine (cairosvg, rsvg-convert, Inkscape, or headless Chrome/Chromium). `reladraw` needs the `reladraw` CLI (`npm install -g reladraw`, or `npx reladraw` without installing).
 
 ## Contributing
 
