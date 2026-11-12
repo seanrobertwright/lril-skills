@@ -229,6 +229,8 @@ With no number it uses the most recent thing in the conversation that asked you 
 
 Each step is one action: where to look, what to click or type, what you should see afterwards, and what to do if you do not. Anything you need to type has a **Copy** button. Point at a step, or press its **Why?** button, for an everyday explanation of why the step is there. Tick the steps as you go; the page remembers your ticks. If a step does not go the way it says, **I'm stuck on this step** copies a message to paste back to Claude, which then rewrites that step.
 
+Ask for help with a task that already has an unfinished checklist and it does not build a second one. It re-checks the existing checklist against the task as it stands now, shows you any improvements it found in plain words, and asks which ones you want. Only the ones you pick are added.
+
 You do not have to finish in one sitting. Press **Save my progress**, close the page, and type `/help-me continue` later, even in a new conversation. It lists the checklists you have not finished, lets you pick one, and opens it with your ticks in place. A checklist leaves that list once you tell Claude you have finished it and Claude has checked the result.
 
 Each checklist is a single page kept in a `.help-me` folder in your home directory, outside your project. Nothing is installed and nothing is left running. Your ticks live in your web browser, so they come back in the same browser on the same computer.

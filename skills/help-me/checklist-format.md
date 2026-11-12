@@ -11,7 +11,7 @@ web page. `example-checklist.json` is a complete working example.
 | `summary` | yes | Two or three sentences: what these steps achieve, and how the reader will know they are finished. |
 | `steps` | yes | The steps, in the order they are done. See below. |
 | `source` | no | Where the task came from: "GitHub issue #494: Login button does nothing". |
-| `sourceUrl` | no | A link for `source`. Must start with `http://`, `https://` or `mailto:`. |
+| `sourceUrl` | no | A link for `source`. Must start with `http://`, `https://` or `mailto:`. Always set it for an issue: it is how a later request for the same issue finds this checklist. |
 | `minutes` | no | A whole number: your honest estimate for the whole list. |
 | `before` | no | A list of things to have ready before step 1 (a window open, a password to hand, an account). |
 | `words` | no | A list of `{ "word", "meaning" }` pairs for every technical word the steps could not avoid. |
@@ -51,21 +51,23 @@ The script stops with a `Checklist problem:` message when:
 - two steps have the same title
 - `minutes` is not a whole number, or `sourceUrl` is not a web or mail link
 - `paste` is missing its `text` or its `into`
+- an open checklist already has this file's name, and this file is not its kept copy
 
 Fix the file and run the script again.
 
 ## Where checklists are kept
 
-Building `issue-494.json` keeps two files in the reader's checklist folder, `.help-me` in their home
-directory: a copy of the JSON and the page, both named for the slug (`issue-494`). The slug is the
+Building `my-app-issue-494.json` keeps two files in the reader's checklist folder, `.help-me` in their home
+directory: a copy of the JSON and the page, both named for the slug (`my-app-issue-494`). The slug is the
 JSON's file name in lower case with anything that is not a letter or digit turned into a hyphen.
 A checklist is open while its JSON is in that folder. `--done <slug>` moves both files into the
 `done` folder inside it.
 
 | Command | What it does |
 |---|---|
-| `build-checklist.mjs <file.json>` | checks the file, keeps it, writes the page, opens the browser |
-| `build-checklist.mjs --list` | prints the open checklists as JSON, most recently saved first |
+| `build-checklist.mjs <file.json>` | checks the file, keeps it, writes the page, opens the browser. Stops if an open checklist already has that name, unless the file is the kept copy itself. |
+| `build-checklist.mjs <file.json> --replace` | the same, but throws away the open checklist of that name first |
+| `build-checklist.mjs --list` | prints the open checklists as JSON, most recently saved first: `slug`, `title`, `summary`, `source`, `sourceUrl`, `steps`, `saved`, and the paths `json` and `page` |
 | `build-checklist.mjs --open <slug>` | rebuilds the page of an open checklist and opens the browser |
 | `build-checklist.mjs --done <slug>` | takes a checklist off the open list |
 | `build-checklist.mjs <file.json> -o <out.html>` | writes the page to that path and keeps nothing |

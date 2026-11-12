@@ -276,6 +276,31 @@ describe('keeping checklists to continue later', () => {
     assert.equal(JSON.parse(fs.readFileSync(file, 'utf8')).title, sample().title);
   });
 
+  it('store refuses to overwrite an open checklist from another file unless told to replace it', () => {
+    const home = tmpDir();
+    store(write(tmpDir(), 'task.json', { title: 'First task' }), home);
+    const other = write(tmpDir(), 'task.json', { title: 'Second task' });
+    assert.throws(() => store(other, home), /an open checklist called "task" already exists/);
+    assert.equal(listOpen(home)[0].title, 'First task');
+    store(other, home, { replace: true });
+    assert.equal(listOpen(home)[0].title, 'Second task');
+  });
+
+  it('store lets the kept copy be edited and built again', () => {
+    const home = tmpDir();
+    const kept = store(write(tmpDir(), 'task.json'), home);
+    fs.writeFileSync(kept.json, JSON.stringify(sample({ title: 'Improved task' })));
+    store(kept.json, home);
+    assert.equal(listOpen(home)[0].title, 'Improved task');
+  });
+
+  it('a finished checklist frees its name', () => {
+    const home = tmpDir();
+    store(write(tmpDir(), 'task.json'), home);
+    finish('task', home);
+    assert.equal(store(write(tmpDir(), 'task.json'), home).slug, 'task');
+  });
+
   it('store keeps nothing when the checklist is invalid', () => {
     const home = path.join(tmpDir(), 'store');
     assert.throws(() => store(write(tmpDir(), 'bad.json', { steps: [] }), home), ChecklistError);
@@ -290,7 +315,9 @@ describe('keeping checklists to continue later', () => {
     const work = tmpDir();
     const home = tmpDir();
     store(write(work, 'older.json', { title: 'Older task' }), home);
-    store(write(work, 'newer.json', { title: 'Newer task', source: 'GitHub issue #7' }), home);
+    store(write(work, 'newer.json', {
+      title: 'Newer task', source: 'GitHub issue #7', sourceUrl: 'https://github.com/acme/widget/issues/7',
+    }), home);
     fs.utimesSync(path.join(home, 'older.json'), new Date(1_600_000_000_000), new Date(1_600_000_000_000));
     fs.writeFileSync(path.join(home, 'broken.json'), '{ nope');
     fs.utimesSync(path.join(home, 'broken.json'), new Date(1_500_000_000_000), new Date(1_500_000_000_000));
@@ -299,6 +326,8 @@ describe('keeping checklists to continue later', () => {
     assert.deepEqual(items.map((i) => i.slug), ['newer', 'older', 'broken']);
     assert.equal(items[0].title, 'Newer task');
     assert.equal(items[0].source, 'GitHub issue #7');
+    assert.equal(items[0].sourceUrl, 'https://github.com/acme/widget/issues/7');
+    assert.equal(items[0].summary, sample().summary);
     assert.equal(items[0].steps, 2);
     assert.equal(items[1].saved, '2020-09-13T12:26:40.000Z');
     assert.match(items[2].problem, /not valid JSON/);
@@ -366,6 +395,12 @@ describe('keeping checklists to continue later', () => {
     assert.equal(listed[0].slug, 'example-checklist');
 
     r = run('--open', 'example-checklist', '--no-open');
+    assert.equal(r.status, 0, r.stderr);
+
+    r = run(EXAMPLE, '--no-open');
+    assert.equal(r.status, 2);
+    assert.match(r.stderr, /already exists/);
+    r = run(EXAMPLE, '--no-open', '--replace');
     assert.equal(r.status, 0, r.stderr);
 
     r = run('--open', '../x', '--no-open');
