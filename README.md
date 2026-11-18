@@ -33,7 +33,7 @@ That's it. An interactive installer walks you through selecting skills and choos
 
 ## Skills at a glance
 
-**40 skills** — 13 authored here, 27 mirrored from other authors.
+**44 skills** — 13 authored here, 31 mirrored from other authors.
 
 | | |
 |---|---|
@@ -42,6 +42,7 @@ That's it. An interactive installer walks you through selecting skills and choos
 | **Workflow** | [`lril`](#lril--second-brain-workflow-commands) · [`ask-sean`](#ask-sean--which-skill-and-whats-next) · [`help-me`](#help-me--a-follow-along-checklist-for-a-task-you-do-not-understand) · `implement` · `triage` · `handoff` · `resolving-merge-conflicts` |
 | **Environment** | [`port-authhority`](#port-authhority--docker-port-conflict-manager) · [`context-diet`](#context-diet--shrink-what-loads-every-session) · `setup-pre-commit` · `git-guardrails-claude-code` |
 | **Communication** | [`excalidraw-diagram`](#excalidraw-diagram--visual-diagramming) · `edit-article` · `teach` · `obsidian-vault` · `reladraw` · `logo-design` |
+| **Hardware (KiCad)** | `kicad-design` · `parts-sourcing` · `design-review` · `fab-release` |
 
 ---
 
@@ -296,6 +297,17 @@ Provenance, pinned commit, and license for each are in [`VENDORED.md`](VENDORED.
 | `reladraw` | Architecture and data-flow diagrams in a text language where you state the arrangement (`right of api`, `level with queue`), so Claude can read the layout back from the source; renders to standalone SVG |
 | `logo-design` | Logos and brand marks from brief to production SVGs: concepts, 16 px and one-colour tests, client presentation boards, favicon and app-icon exports, and a searchable library of 1,400+ real-world logos for reference |
 
+**Hardware design (KiCad)**
+
+These four drive the [Copper](https://github.com/claynicholson/copper-kicad-mcp) MCP server and do nothing without it — see [Requirements](#requirements).
+
+| Skill | What it does |
+|---|---|
+| `kicad-design` | End-to-end KiCad board design, from a one-line requirement to a verified, orderable board: part selection, batched schematic edits, ERC/DRC, rendering, placement, routing, and fab output |
+| `parts-sourcing` | Choose and lock real, orderable parts (LCSC/JLCPCB by default): stock and price checks, alternatives, symbol/footprint import, a 100% sourced BOM |
+| `design-review` | Engineering review of a schematic and PCB before ordering — power tree, decoupling, USB-C, ESD, crystals, straps, pull-ups, thermal, DFM against the fab's rules |
+| `fab-release` | Produce the manufacturing package (Gerbers, drill, BOM, placement) for a fab once the verification gates pass — JLCPCB by default, PCBWay, OSH Park, or a custom profile |
+
 ## Installation Options
 
 ### Global (available in all projects)
@@ -346,12 +358,13 @@ How it works:
 - [`mattpocock/skills`](https://github.com/mattpocock/skills) (MIT) — 25 of Matt Pocock's engineering, productivity, and writing skills (TDD, triage, domain modeling, and more).
 - [`kaankiziltug/logo-design-skill`](https://github.com/kaankiziltug/logo-design-skill) (MIT) — `logo-design`, a logo and brand-mark design skill.
 - [`reladraw/reladraw`](https://github.com/reladraw/reladraw) (Apache-2.0) — `reladraw`, the skill that ships with the reladraw diagram language.
+- [`claynicholson/copper-kicad-mcp`](https://github.com/claynicholson/copper-kicad-mcp) (MIT) — `kicad-design`, `parts-sourcing`, `design-review`, and `fab-release`, the four skills that ship with the Copper KiCad MCP server.
 
 ## Requirements
 
 - **Node.js** >= 18
 - **Claude Code** (any recent version)
-- Individual skills may have their own dependencies (documented in each skill's instructions). Notably, `how-its-made` needs `git` and **Node 18+**, and uses an authenticated `gh` for pull request evidence when it is available. `help-me` needs **Node 18+**, and an authenticated `gh` when you give it an issue number. `creating-uat` ships its helper for both **Python 3.8+** and **Node 18+**, and needs neither `pip install` nor `npm install`. `logo-design` runs dependency-free **Python 3** scripts; turning SVGs into PNGs needs one renderer on the machine (cairosvg, rsvg-convert, Inkscape, or headless Chrome/Chromium). `reladraw` needs the `reladraw` CLI (`npm install -g reladraw`, or `npx reladraw` without installing).
+- Individual skills may have their own dependencies (documented in each skill's instructions). Notably, `how-its-made` needs `git` and **Node 18+**, and uses an authenticated `gh` for pull request evidence when it is available. `help-me` needs **Node 18+**, and an authenticated `gh` when you give it an issue number. `creating-uat` ships its helper for both **Python 3.8+** and **Node 18+**, and needs neither `pip install` nor `npm install`. `logo-design` runs dependency-free **Python 3** scripts; turning SVGs into PNGs needs one renderer on the machine (cairosvg, rsvg-convert, Inkscape, or headless Chrome/Chromium). `reladraw` needs the `reladraw` CLI (`npm install -g reladraw`, or `npx reladraw` without installing). `kicad-design`, `parts-sourcing`, `design-review`, and `fab-release` need [KiCad 10](https://www.kicad.org/download/) and the Copper MCP server connected to your AI app (`npx -y copper-kicad setup`, or the other install routes in the [copper-kicad-mcp README](https://github.com/claynicholson/copper-kicad-mcp#install)) — only the skills are mirrored here, not the server.
 
 ## Contributing
 

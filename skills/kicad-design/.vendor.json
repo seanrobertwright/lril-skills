@@ -1,0 +1,9 @@
+{
+  "source": "claynicholson/copper-kicad-mcp",
+  "repo": "https://github.com/claynicholson/copper-kicad-mcp.git",
+  "branch": "main",
+  "path": "plugin/skills/kicad-design",
+  "commit": "3d3a7628dc52a63358ad945eef224cb7c5636080",
+  "license": "MIT",
+  "syncedAt": null
+}

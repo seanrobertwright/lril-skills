@@ -9,9 +9,11 @@ overwritten on the next sync. Each retains its upstream `LICENSE`
 |-------|--------|--------|---------|
 | `ask-matt` | [mattpocock/skills](https://github.com/mattpocock/skills) | `6eeb81b5` | MIT |
 | `codebase-design` | [mattpocock/skills](https://github.com/mattpocock/skills) | `6eeb81b5` | MIT |
+| `design-review` | [claynicholson/copper-kicad-mcp](https://github.com/claynicholson/copper-kicad-mcp) | `3d3a7628` | MIT |
 | `diagnosing-bugs` | [mattpocock/skills](https://github.com/mattpocock/skills) | `6eeb81b5` | MIT |
 | `domain-modeling` | [mattpocock/skills](https://github.com/mattpocock/skills) | `6eeb81b5` | MIT |
 | `edit-article` | [mattpocock/skills](https://github.com/mattpocock/skills) | `6eeb81b5` | MIT |
+| `fab-release` | [claynicholson/copper-kicad-mcp](https://github.com/claynicholson/copper-kicad-mcp) | `3d3a7628` | MIT |
 | `git-guardrails-claude-code` | [mattpocock/skills](https://github.com/mattpocock/skills) | `6eeb81b5` | MIT |
 | `grill-me` | [mattpocock/skills](https://github.com/mattpocock/skills) | `6eeb81b5` | MIT |
 | `grill-with-docs` | [mattpocock/skills](https://github.com/mattpocock/skills) | `6eeb81b5` | MIT |
@@ -19,9 +21,11 @@ overwritten on the next sync. Each retains its upstream `LICENSE`
 | `handoff` | [mattpocock/skills](https://github.com/mattpocock/skills) | `6eeb81b5` | MIT |
 | `implement` | [mattpocock/skills](https://github.com/mattpocock/skills) | `6eeb81b5` | MIT |
 | `improve-codebase-architecture` | [mattpocock/skills](https://github.com/mattpocock/skills) | `6eeb81b5` | MIT |
+| `kicad-design` | [claynicholson/copper-kicad-mcp](https://github.com/claynicholson/copper-kicad-mcp) | `3d3a7628` | MIT |
 | `logo-design` | [kaankiziltug/logo-design-skill](https://github.com/kaankiziltug/logo-design-skill) | `0ecf52e9` | MIT |
 | `migrate-to-shoehorn` | [mattpocock/skills](https://github.com/mattpocock/skills) | `6eeb81b5` | MIT |
 | `obsidian-vault` | [mattpocock/skills](https://github.com/mattpocock/skills) | `6eeb81b5` | MIT |
+| `parts-sourcing` | [claynicholson/copper-kicad-mcp](https://github.com/claynicholson/copper-kicad-mcp) | `3d3a7628` | MIT |
 | `prototype` | [mattpocock/skills](https://github.com/mattpocock/skills) | `6eeb81b5` | MIT |
 | `reladraw` | [reladraw/reladraw](https://github.com/reladraw/reladraw) | `fa6e179a` | Apache-2.0 |
 | `resolving-merge-conflicts` | [mattpocock/skills](https://github.com/mattpocock/skills) | `6eeb81b5` | MIT |

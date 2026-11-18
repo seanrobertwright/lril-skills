@@ -6,7 +6,10 @@
       "repo": "https://github.com/mattpocock/skills.git",
       "branch": "main",
       "skillsDir": "skills",
-      "exclude": ["deprecated", "in-progress"],
+      "exclude": [
+        "deprecated",
+        "in-progress"
+      ],
       "license": "MIT"
     },
     {
@@ -24,6 +27,14 @@
       "skillsDir": ".claude/skills",
       "exclude": [],
       "license": "Apache-2.0"
+    },
+    {
+      "name": "claynicholson/copper-kicad-mcp",
+      "repo": "https://github.com/claynicholson/copper-kicad-mcp.git",
+      "branch": "main",
+      "skillsDir": "plugin/skills",
+      "exclude": [],
+      "license": "MIT"
     }
   ]
 }
